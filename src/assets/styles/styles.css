@@ -2240,6 +2240,32 @@ ul.mugin_resetList > li {
   column-gap: 10px;
 }
 
+.mugin_resultSelectColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  margin-left: -40px;
+}
+
+.mugin_resultSelectColumn input.mugin_selectArticleCheckbox[type="checkbox"] {
+  margin: 2px 0 0 0 !important;
+}
+
+.mugin_ResultEntry .mugin_resultMatchPercent {
+  margin: 0;
+  font-size: 0.75em;
+  line-height: 1.1;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.mugin_resultMatchPercentMobile {
+  margin-left: auto;
+  text-align: right;
+}
+
 .mugin_resultentryDateMobile {
   margin: 0;
 }

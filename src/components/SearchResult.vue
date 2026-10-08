@@ -709,7 +709,7 @@
   import { promptRuleLoaderMixin } from "@/mixins/promptRuleLoaderMixin.js";
   import { appSettingsMixin, eventBus } from "@/mixins/appSettings";
   import { utilitiesMixin } from "@/mixins/utilities";
-  import { dateOptions, languageFormat, pageSizes } from "@/utils/contentHelpers";
+  import { languageFormat, pageSizes } from "@/utils/contentHelpers";
   import {
     areComparableIdsEqual,
     extractDoi,
@@ -717,8 +717,8 @@
     getAbstractEntriesFromPubMedXml,
     getArticleSource,
     getAuthorNames,
+    formatResultListDate,
     getFormattedEntrezDate,
-    parseSinglePublicationDate,
     hasDefinedValue,
     hasXmlParserError,
     getLocalizedTranslation,
@@ -2029,21 +2029,13 @@
       getDate(value) {
         const history = Array.isArray(value?.history) ? value.history : [];
         if (history.length > 0) {
-          return getFormattedEntrezDate(history, this.language);
+          const entrezDate = getFormattedEntrezDate(history, this.language);
+          if (entrezDate) return entrezDate;
         }
-        const publicationDate = String(value?.publicationDate || "").trim();
-        if (publicationDate) {
-          const parsedDate = parseSinglePublicationDate(publicationDate);
-          if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
-            return parsedDate.toLocaleDateString(languageFormat[this.language], dateOptions);
-          }
-          if (/[A-Za-z]/.test(publicationDate) || /^\d{4}$/.test(publicationDate)) {
-            return "";
-          }
-          const fallbackDate = new Date(publicationDate);
-          if (!Number.isNaN(fallbackDate.getTime())) {
-            return fallbackDate.toLocaleDateString(languageFormat[this.language], dateOptions);
-          }
+        const candidates = [value?.publicationDate, value?.year, value?.pubdate];
+        for (const candidate of candidates) {
+          const formatted = formatResultListDate(candidate, this.language);
+          if (formatted) return formatted;
         }
         return "";
       },

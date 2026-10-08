@@ -162,6 +162,32 @@ assertTrue(
     ($citationDated['publicationDate'] ?? '') === '2012 Jun 30',
     'PubMed citation date uses pubdate, not sortpubdate'
 );
+$entrezDated = muginPublicSearchBuildApiResultFromPubMed(
+    [
+        'uid' => '22778566',
+        'title' => 'Incidence of nutritional support complications',
+        'pubdate' => '2012 Jun 30',
+        'history' => [
+            ['pubstatus' => 'pubmed', 'date' => '2012/07/04 00:00'],
+            ['pubstatus' => 'entrez', 'date' => '2012/07/03 00:00'],
+        ],
+        'authors' => [],
+        'lang' => ['eng'],
+        'pubtype' => ['Journal Article'],
+    ],
+    '',
+    3,
+    ['sources' => ['pubmed'], 'source' => 'pubmed'],
+    true
+);
+assertTrue(
+    ($entrezDated['history'][0]['date'] ?? '') === '2012/07/03 00:00',
+    'PubMed result keeps the Entrez date separately from the publication date'
+);
+assertTrue(
+    ($entrezDated['publicationDate'] ?? '') === '2012 Jun 30',
+    'the Entrez date does not replace the citation date'
+);
 assertTrue(
     ($citationDated['sourceLabel'] ?? '') === 'Colomb Med (Cali)',
     'PubMed citation uses the abbreviated journal title'
@@ -250,5 +276,33 @@ assertTrue(
     count(array_filter($openAlexTopicLabels, static fn($label) => strcasecmp($label, 'Medical education') === 0)) === 1,
     'Primary OpenAlex topic is not duplicated in openAlexTopic'
 );
+
+$ceilingConfig = muginSemanticQualityResolveRerankConfig([
+    'sourceWeights' => ['pubmed' => 1.0, 'openAlex' => 2.0],
+    'pmidBonus' => 10,
+    'rankScale' => 100,
+    'rrfK' => 60,
+    'overlapBonusPerExtraSource' => 35,
+    'pubTypeWeights' => ['systematic-review' => 40, 'letter' => -15],
+    'pubTypeTiers' => ['guideline' => ['bonus' => 8]],
+    'recencyBonusMax' => 25,
+    'recencyCurveEnabled' => true,
+    'recencyCurve' => [[5, 5.0], [10, 1.0]],
+    'oaBonus' => 6,
+    'clinicalBonus' => 20,
+    'topicOverlapBonus' => 35,
+    'citationImpactClamp' => [0.85, 1.30],
+    'authorityClamp' => [0.97, 1.08],
+    'recencyMultiplierCurve' => [[0, 1.5], [10, 0.5]],
+    'translationPotentialBonusMax' => 99,
+]);
+$rankOpenAlex = (2.0 * 100 * 60) / 61;
+$expectedPivot = 10 + $rankOpenAlex + (25 * 5);
+$actualPivot = muginSemanticQualitySaturationPivotScore($ceilingConfig, ['pubmed', 'openAlex']);
+assertTrue(abs($actualPivot - $expectedPivot) < 0.001, 'the saturation pivot uses the strongest source and only the strongest bonus');
+$reference = $actualPivot * muginFinalRerankDecisionBoostFactor(7.5, 1, 0.7);
+$saturationPivot = $reference / 3;
+$saturated = (int) round(100 * $reference / ($reference + $saturationPivot));
+assertTrue($saturated === 75, 'the reference article is 75 percent');
 
 echo "OK: result ranking passthrough smoke test passed\n";

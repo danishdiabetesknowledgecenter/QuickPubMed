@@ -26,6 +26,12 @@
       <p v-if="showDate && date" class="mugin_resultentryDate mugin_resultentryDateMobile">
         {{ date }}
       </p>
+      <p
+        v-if="canShowSelectionCheckbox && matchPercentLabel"
+        class="mugin_resultMatchPercent mugin_resultMatchPercentMobile"
+      >
+        {{ matchPercentLabel }}
+      </p>
     </div>
     <p v-else-if="showDate && date" class="mugin_resultentryDate">
       {{ date }}
@@ -33,20 +39,26 @@
     <div lang="en">
       <div class="mugin_resultChangeOrder">
         <div class="d-flex">
-          <input
+          <div
             v-if="canShowSelectionCheckbox && !getComponentWidth"
-            :id="'mugin_selectArticleCheckbox_' + id"
-            type="checkbox"
-            class="mugin_selectArticleCheckbox"
-            style="margin-left: -40px"
-            :name="'mugin_selectArticleCheckbox_' + id"
-            :checked="isChecked"
-            :value="value"
-            :aria-label="selectArticleCheckboxAriaLabel"
-            aria-describedby="mugin_selectArticleCheckboxDescription"
-            @change="updateInput"
-            @keyup.enter="changeOnEnter"
-          />
+            class="mugin_resultSelectColumn"
+          >
+            <input
+              :id="'mugin_selectArticleCheckbox_' + id"
+              type="checkbox"
+              class="mugin_selectArticleCheckbox"
+              :name="'mugin_selectArticleCheckbox_' + id"
+              :checked="isChecked"
+              :value="value"
+              :aria-label="selectArticleCheckboxAriaLabel"
+              aria-describedby="mugin_selectArticleCheckboxDescription"
+              @change="updateInput"
+              @keyup.enter="changeOnEnter"
+            />
+            <p v-if="matchPercentLabel" class="mugin_resultMatchPercent">
+              {{ matchPercentLabel }}
+            </p>
+          </div>
           <div class="mugin_resultTitleWrap">
             <h3
               class="mugin_resultTitle mugin_inlineDisplay"
@@ -1696,6 +1708,13 @@
       resultDetailsRanking() {
         const ranking = this.resultDetailsValue?.ranking;
         return ranking && typeof ranking === "object" ? ranking : null;
+      },
+      matchPercentLabel() {
+        const raw = this.resultDetailsRanking?.matchPercent;
+        if (!Number.isFinite(raw)) return "";
+        const value = Math.round(raw);
+        if (value < 0 || value > 100) return "";
+        return `${value}%`;
       },
       resultDetailsAbstractSource() {
         return String(this.resultDetailsValue?.abstractSource || "").trim();

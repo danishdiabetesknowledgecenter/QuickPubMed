@@ -306,7 +306,7 @@ export function mapUnifiedApiResultToResultDto(apiResult) {
     doctype: publicationTypes[0] || "",
     booktitle: "",
     vernaculartitle: "",
-    history: [],
+    history: Array.isArray(safeResult.history) ? safeResult.history : [],
     articleids: buildPubMedArticleIds(pmid, doi),
     attributes: hasAbstract ? { "Has Abstract": "Has Abstract" } : {},
     originSource: normalizeStringValue(safeResult.originSource || (isPubMedNative ? "pubmed" : "")),

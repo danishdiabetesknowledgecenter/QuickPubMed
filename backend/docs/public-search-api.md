@@ -392,6 +392,7 @@ API'et returnerer den endelige ordnede liste i `results`.
       "sourceLabel": "Diabetes Care",
       "publicationDate": "2024 Jan 15",
       "year": "2024",
+      "history": [{ "pubstatus": "entrez", "date": "2024/01/16 00:00" }],
       "language": "eng",
       "publicationTypes": ["Randomized Controlled Trial"],
       "topics": [
@@ -438,7 +439,7 @@ API'et returnerer den endelige ordnede liste i `results`.
 }
 ```
 
-`ranking` er additivt og udelades, hvis kandidaten ikke har score-data. `combinedScore` er hybrid-scoren fra før LLM-slutrerank. `llmScore` er modellens score fra 0 til 10, når slutrerankingen har kørt. `llmScoreRaw` findes kun, når et tomt abstract har sænket den score. `llmConfidence` er decisions-modellens sikkerhed fra 0 til 1, når den model har scoret artiklen. Resultatlisten er allerede i den rækkefølge, slutrerankingen lagde.
+`ranking` er additivt og udelades, hvis kandidaten ikke har score-data. `combinedScore` er hybrid-scoren fra før LLM-slutrerank. `llmScore` er modellens score fra 0 til 9, når slutrerankingen har kørt. `llmScoreRaw` findes kun, når et tomt abstract har sænket den score. `llmConfidence` er decisions-modellens sikkerhed fra 0 til 1, når den model har scoret artiklen. `matchPercent` er 0 til 100 og følger den samme score, listen er sorteret på. Tallet mættes som `100 × score / (score + omdrejningspunkt)`. Omdrejningspunktet er en tredjedel af en stærk, realistisk artikel: plads 1 i den stærkeste valgte kilde, den ene stærkeste kvalitetsbonus og en decisions-score på 7,5 med fuld sikkerhed. Den artikel får 75 %. Flere kilder og de øvrige bonusser kan løfte højere, og scoren nærmer sig 100 uden at skulle ramme hvert maksimum på én gang. Den øverste artikel er derfor ikke automatisk 100. Resultatlisten er allerede i den rækkefølge, slutrerankingen lagde.
 
 ## Streaming
 

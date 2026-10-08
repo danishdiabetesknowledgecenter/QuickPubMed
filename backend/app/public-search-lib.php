@@ -12243,6 +12243,45 @@ if (!function_exists('muginPublicSearchCitationDateFromPubMedSummary')) {
     }
 }
 
+if (!function_exists('muginPublicSearchEntrezDateFromPubMedSummary')) {
+    /**
+     * PubMeds Entrez-dato (edat): dagen posten kom ind i Entrez.
+     * Det er ikke publikationsdatoen.
+     *
+     * @param array<string,mixed> $summary
+     */
+    function muginPublicSearchEntrezDateFromPubMedSummary(array $summary): string
+    {
+        $history = $summary['history'] ?? null;
+        if (is_array($history)) {
+            if (array_is_list($history)) {
+                foreach ($history as $item) {
+                    if (!is_array($item)) {
+                        continue;
+                    }
+                    if (strtolower(trim((string) ($item['pubstatus'] ?? ''))) !== 'entrez') {
+                        continue;
+                    }
+                    $date = trim((string) ($item['date'] ?? ''));
+                    if ($date !== '') {
+                        return $date;
+                    }
+                }
+            } else {
+                $raw = $history['entrez'] ?? '';
+                if (is_array($raw)) {
+                    $raw = $raw[0] ?? '';
+                }
+                $date = trim((string) $raw);
+                if ($date !== '') {
+                    return $date;
+                }
+            }
+        }
+        return trim((string) ($summary['edat'] ?? ''));
+    }
+}
+
 if (!function_exists('muginPublicSearchParseSortDateValue')) {
     /**
      * @param string $value
@@ -12627,6 +12666,7 @@ if (!function_exists('muginPublicSearchGetSemanticLlmConfig')) {
             'topN' => max(2, min(100, $topN)),
             'promoteMinConfidence' => max(0.0, min(1.0, is_numeric($raw['promoteMinConfidence'] ?? null) ? (float) $raw['promoteMinConfidence'] : 0.75)),
             'promoteCutoffScore' => max(0, min(10, is_numeric($raw['promoteCutoffScore'] ?? null) ? (int) $raw['promoteCutoffScore'] : 7)),
+            'decisionScoreWeight' => max(0.0, min(0.95, is_numeric($raw['decisionScoreWeight'] ?? null) ? (float) $raw['decisionScoreWeight'] : 0.7)),
             'maxOutputTokens' => max(64, $maxOutputTokens),
             // Shared across UnifiedSearch + public API so identical candidate
             // payloads reuse the same LLM permutation (parity + fewer OpenAI calls).
@@ -12878,7 +12918,12 @@ if (!function_exists('muginPublicSearchReorderResultRefsByFinalRerank')) {
             if ($key === '' || !isset($refByKey[$key]) || isset($used[$key])) {
                 continue;
             }
-            $newWindow[] = $refByKey[$key];
+            $saved = $refByKey[$key];
+            $matchPercent = $result['ranking']['matchPercent'] ?? null;
+            if (is_numeric($matchPercent)) {
+                $saved['matchPercent'] = max(0, min(100, (int) $matchPercent));
+            }
+            $newWindow[] = $saved;
             $used[$key] = true;
         }
         foreach ($windowRefs as $ref) {
@@ -12901,7 +12946,7 @@ if (!function_exists('muginPublicSearchReadFinalRerankWindow')) {
      * PMID order written after a PubMed-only page-1 rerank, so later pages
      * follow that order instead of asking NCBI for the same slice again.
      *
-     * @return array{pmids:array<int,string>,totalCount:int}|null
+     * @return array{pmids:array<int,string>,totalCount:int,matchPercentByPmid:array<string,int>}|null
      */
     function muginPublicSearchReadFinalRerankWindow(string $cacheKey): ?array
     {
@@ -12919,9 +12964,17 @@ if (!function_exists('muginPublicSearchReadFinalRerankWindow')) {
         if ($pmids === []) {
             return null;
         }
+        $matchPercentByPmid = [];
+        foreach ((array) ($entry['value']['matchPercentByPmid'] ?? []) as $pmid => $percent) {
+            $normalizedPmid = muginPublicSearchNormalizePmid($pmid);
+            if ($normalizedPmid !== '' && is_numeric($percent)) {
+                $matchPercentByPmid[$normalizedPmid] = max(0, min(100, (int) $percent));
+            }
+        }
         return [
             'pmids' => $pmids,
             'totalCount' => (int) ($entry['value']['totalCount'] ?? 0),
+            'matchPercentByPmid' => $matchPercentByPmid,
         ];
     }
 }
@@ -12944,8 +12997,14 @@ if (!function_exists('muginPublicSearchScoreFinalRerankWithModel')) {
         int $maxOutputTokens,
         string $domain,
         string $reasoningEffort = 'none',
-        $reasoningSummary = null
+        $reasoningSummary = null,
+        array $selectedLimits = [],
+        string $focusId = '',
+        string $focusDescription = ''
     ): array {
+        $selectedLimits = function_exists('muginFinalRerankNormalizeConstraintLabels')
+            ? muginFinalRerankNormalizeConstraintLabels($selectedLimits)
+            : [];
         $pendingIds = array_values(array_filter($pendingIds, static function ($id) use ($candidatesById): bool {
             return isset($candidatesById[$id]);
         }));
@@ -12965,7 +13024,10 @@ if (!function_exists('muginPublicSearchScoreFinalRerankWithModel')) {
                     ),
                     $userQuestion,
                     $retrievalQuery,
-                    $maxOutputTokens
+                    $maxOutputTokens,
+                    $selectedLimits,
+                    $focusId,
+                    $focusDescription
                 );
                 $namedRequests[$id] = muginPublicSearchBuildOpenAiRequestSpec($payload, $domain);
             }
@@ -12975,6 +13037,7 @@ if (!function_exists('muginPublicSearchScoreFinalRerankWithModel')) {
             $rawById = [];
             $failedIds = [];
             $confidenceById = [];
+            $scoreExactById = [];
             $error = '';
             foreach ($pendingIds as $id) {
                 $httpResult = $responses[$id] ?? null;
@@ -12997,6 +13060,7 @@ if (!function_exists('muginPublicSearchScoreFinalRerankWithModel')) {
                     continue;
                 }
                 $rawById[$id] = $answer['score'];
+                $scoreExactById[$id] = $answer['scoreExact'];
                 if ($answer['confidence'] !== null) {
                     $confidenceById[$id] = $answer['confidence'];
                 }
@@ -13006,12 +13070,28 @@ if (!function_exists('muginPublicSearchScoreFinalRerankWithModel')) {
                 'failedIds' => $failedIds,
                 'error' => $error,
                 'confidenceById' => $confidenceById,
+                'scoreExactById' => $scoreExactById,
             ];
         }
 
         $pendingCandidates = [];
         foreach ($pendingIds as $id) {
             $pendingCandidates[] = $candidatesById[$id];
+        }
+        $chatUser = [
+            'userQuestion' => $userQuestion,
+            'retrievalQuery' => $retrievalQuery,
+            'task' => muginFinalRerankTaskLine(),
+            'candidates' => $pendingCandidates,
+        ];
+        if ($selectedLimits !== []) {
+            $chatUser['selectedLimits'] = $selectedLimits;
+        }
+        if (muginFinalRerankFocusConstrainsScore($focusId)) {
+            $chatUser['resultFocus'] = [
+                'id' => $focusId,
+                'description' => $focusDescription,
+            ];
         }
         $payload = [
             'model' => $model,
@@ -13022,12 +13102,7 @@ if (!function_exists('muginPublicSearchScoreFinalRerankWithModel')) {
                 ],
                 [
                     'role' => 'user',
-                    'content' => muginPublicSearchSafeJsonEncode([
-                        'userQuestion' => $userQuestion,
-                        'retrievalQuery' => $retrievalQuery,
-                        'task' => muginFinalRerankTaskLine(),
-                        'candidates' => $pendingCandidates,
-                    ]),
+                    'content' => muginPublicSearchSafeJsonEncode($chatUser),
                 ],
             ],
             'reasoning' => function_exists('muginResponsesReasoningFromSettings')
@@ -13219,6 +13294,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 );
             }
         }
+        $focusDetail['constrainsScore'] = muginFinalRerankFocusConstrainsScore($focusProfileId);
         $llmCandidates = [];
         foreach ($requestCandidates as $candidate) {
             $llmCandidate = [
@@ -13233,6 +13309,12 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         }
 
         $hardFilterQuery = trim((string) ($resolvedQueries['hardFilterQuery'] ?? ''));
+        $intentContext = isset($request['intentContext']) && is_array($request['intentContext'])
+            ? $request['intentContext']
+            : [];
+        $selectedLimits = muginFinalRerankNormalizeConstraintLabels(
+            muginPublicSearchNormalizeSimpleList($intentContext['selectedLimits'] ?? [])
+        );
         $detail = [
             'endpoint' => 'unified-final-rerank',
             'enabled' => true,
@@ -13241,6 +13323,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             'request' => [
                 'userQuestion' => $userQuestion,
                 'retrievalQuery' => $retrievalQuery,
+                'selectedLimits' => $selectedLimits,
                 'hardFilterQuery' => $hardFilterQuery,
                 'resultFocus' => $focusDetail,
                 'model' => $config['model'],
@@ -13254,6 +13337,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 'minScoreGap' => muginFinalRerankMinScoreGap(),
                 'promoteMinConfidence' => (float) ($config['promoteMinConfidence'] ?? 0.75),
                 'promoteCutoffScore' => (int) ($config['promoteCutoffScore'] ?? 7),
+                'decisionScoreWeight' => (float) ($config['decisionScoreWeight'] ?? 0.7),
                 'tieBreak' => 'priorRank',
                 'unscored' => $unscored,
             ],
@@ -13261,14 +13345,55 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         $expectedIds = array_map(static function ($candidate) {
             return $candidate['id'];
         }, $requestCandidates);
-        $applyRawScores = static function (array $rawById, array $confidenceById = []) use (
+        $rerankConfig = function_exists('muginPublicSearchGetUnifiedRerankConfig')
+            ? muginPublicSearchGetUnifiedRerankConfig($focusProfileId)
+            : [];
+        $baseById = [];
+        $usesHybridBase = false;
+        foreach ($requestCandidates as $baseIndex => $baseCandidate) {
+            $combinedBase = $baseCandidate['combinedScore'] ?? null;
+            if (is_numeric($combinedBase) && (float) $combinedBase > 0) {
+                $baseById[$baseCandidate['id']] = (float) $combinedBase;
+                $usesHybridBase = true;
+                continue;
+            }
+            $rankBase = 0.0;
+            if ($rerankConfig !== [] && function_exists('muginSemanticQualityBuildRankContribution')) {
+                $contribution = muginSemanticQualityBuildRankContribution(
+                    ['rank' => $baseIndex + 1],
+                    'pubmed',
+                    $rerankConfig
+                );
+                $rankBase = (float) ($contribution['weightedRrf'] ?? 0);
+            }
+            $baseById[$baseCandidate['id']] = $rankBase;
+        }
+        $decisionWeight = (float) ($config['decisionScoreWeight'] ?? 0.7);
+        $selectedSources = muginPublicSearchNormalizeSources($request['sources'] ?? []);
+        $pivotScore = ($usesHybridBase && $rerankConfig !== [] && function_exists('muginSemanticQualitySaturationPivotScore'))
+            ? muginSemanticQualitySaturationPivotScore($rerankConfig, $selectedSources)
+            : 0.0;
+        if ($pivotScore <= 0 && $rerankConfig !== [] && function_exists('muginSemanticQualityBuildRankContribution')) {
+            $pivotSource = in_array('pubmed', $selectedSources, true)
+                ? 'pubmed'
+                : (string) ($selectedSources[0] ?? 'pubmed');
+            $rankOne = muginSemanticQualityBuildRankContribution(['rank' => 1], $pivotSource, $rerankConfig);
+            $pivotScore = (float) ($rankOne['weightedRrf'] ?? 0);
+        }
+        // Score 7.5 is the middle of a strong answer. That article is shown as
+        // 75%: score / (score + score/3) = 0.75. Higher scores approach 100.
+        $referenceScore = $pivotScore * muginFinalRerankDecisionBoostFactor(7.5, 1.0, $decisionWeight);
+        $matchPivot = $referenceScore / 3.0;
+        $applyRawScores = static function (array $rawById, array $confidenceById = [], array $scoreExactById = []) use (
             $requestCandidates,
             $deferredEntries,
             $results,
             $topN,
             $detail,
             $expectedIds,
-            $config
+            $config,
+            $baseById,
+            $matchPivot
         ): array {
             $cappedById = [];
             $relevanceRawById = [];
@@ -13291,21 +13416,38 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                     $retractedById[$candidate['id']] = true;
                 }
             }
-            $promotedById = muginFinalRerankPromotedIdMap(
-                $cappedById,
-                $confidenceById,
-                (float) ($config['promoteMinConfidence'] ?? 0.75),
-                (int) ($config['promoteCutoffScore'] ?? 7),
-                $retractedById
-            );
-            $orderedIds = muginFinalRerankOrderByRelevanceMargin(
-                $expectedIds,
-                $cappedById,
-                $retractedById,
-                muginFinalRerankMinScoreGap(),
-                $pinnedById,
-                $promotedById
-            );
+            $weight = (float) ($config['decisionScoreWeight'] ?? 0.7);
+            $ordered = [];
+            foreach ($requestCandidates as $index => $candidate) {
+                $orderedId = $candidate['id'];
+                $hasScore = array_key_exists($orderedId, $cappedById);
+                $exact = null;
+                if (array_key_exists($orderedId, $scoreExactById) && is_numeric($scoreExactById[$orderedId])) {
+                    $exact = (float) $scoreExactById[$orderedId];
+                } elseif ($hasScore) {
+                    $exact = (float) $cappedById[$orderedId];
+                }
+                if ($exact !== null && trim((string) $candidate['abstract']) === '' && $exact > 6.0) {
+                    $exact = 6.0;
+                }
+                $confidence = array_key_exists($orderedId, $confidenceById) ? $confidenceById[$orderedId] : null;
+                $factor = $exact === null
+                    ? 1.0
+                    : muginFinalRerankDecisionBoostFactor($exact, $confidence, $weight);
+                if (!empty($retractedById[$orderedId])) {
+                    $factor = min(1.0, $factor);
+                }
+                $base = (float) ($baseById[$orderedId] ?? 0);
+                $ordered[] = [
+                    'id' => $orderedId,
+                    'prior' => $index,
+                    'sort' => $base * $factor,
+                ];
+            }
+            usort($ordered, static function (array $left, array $right): int {
+                $scoreCompare = $right['sort'] <=> $left['sort'];
+                return $scoreCompare !== 0 ? $scoreCompare : ($left['prior'] <=> $right['prior']);
+            });
             $candidateMap = [];
             $priorRankById = [];
             foreach ($requestCandidates as $index => $candidate) {
@@ -13314,15 +13456,19 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             }
             $reorderedTop = [];
             $rankingCandidates = [];
-            foreach ($orderedIds as $index => $orderedId) {
+            foreach ($ordered as $index => $orderedRow) {
+                $orderedId = $orderedRow['id'];
                 if (!isset($candidateMap[$orderedId])) {
                     continue;
                 }
                 $candidate = $candidateMap[$orderedId];
                 $entry = $candidate['entry'];
                 $hasScore = array_key_exists($orderedId, $cappedById);
+                $matchPercent = ($matchPivot > 0 && $orderedRow['sort'] > 0)
+                    ? max(0, min(100, (int) round(100 * $orderedRow['sort'] / ($orderedRow['sort'] + $matchPivot))))
+                    : 0;
+                $ranking = isset($entry['ranking']) && is_array($entry['ranking']) ? $entry['ranking'] : [];
                 if ($hasScore) {
-                    $ranking = isset($entry['ranking']) && is_array($entry['ranking']) ? $entry['ranking'] : [];
                     $ranking['llmScore'] = $cappedById[$orderedId];
                     if (array_key_exists($orderedId, $relevanceRawById)) {
                         $ranking['llmScoreRaw'] = $relevanceRawById[$orderedId];
@@ -13330,8 +13476,9 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                     if (array_key_exists($orderedId, $confidenceById)) {
                         $ranking['llmConfidence'] = $confidenceById[$orderedId];
                     }
-                    $entry['ranking'] = $ranking;
                 }
+                $ranking['matchPercent'] = $matchPercent;
+                $entry['ranking'] = $ranking;
                 $reorderedTop[] = $entry;
                 $priorRank = $priorRankById[$orderedId];
                 $rank = $index + 1;
@@ -13339,6 +13486,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                     'rank' => $rank,
                     'title' => $candidate['title'],
                     'llmScore' => $hasScore ? $cappedById[$orderedId] : null,
+                    'matchPercent' => $matchPercent,
                 ];
                 if (array_key_exists($orderedId, $relevanceRawById)) {
                     $row['llmScoreRaw'] = $relevanceRawById[$orderedId];
@@ -13348,7 +13496,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 }
                 $row['priorRank'] = $priorRank;
                 $row['moved'] = $rank !== $priorRank;
-                $row['promoted'] = !empty($promotedById[$orderedId]);
+                $row['promoted'] = false;
                 $row['combinedScore'] = $candidate['combinedScore'];
                 $row['retracted'] = ($candidate['retracted'] ?? false) === true;
                 $row['pinned'] = !empty($pinnedById[$orderedId]);
@@ -13356,6 +13504,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             }
             $appliedDetail = $detail;
             $appliedDetail['applied'] = true;
+            $appliedDetail['ranking']['matchPivot'] = $matchPivot;
             $appliedDetail['ranking']['candidates'] = $rankingCandidates;
             $appliedDetail['response'] = [
                 'cached' => false,
@@ -13376,11 +13525,13 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             $candidatesById[(string) $llmCandidate['id']] = $llmCandidate;
         }
         $cacheKey = 'payload:' . sha1(
-            MUGIN_TOPIC_SIGNAL_VERSION . '|confidence|' . $llmProvider . '|' . muginPublicSearchSafeJsonEncode([
+            MUGIN_TOPIC_SIGNAL_VERSION . '|criteria-v2|' . $llmProvider . '|' . muginPublicSearchSafeJsonEncode([
                 'mode' => (string) ($config['mode'] ?? 'chat'),
                 'model' => $config['model'],
                 'userQuestion' => $userQuestion,
                 'retrievalQuery' => $retrievalQuery,
+                'selectedLimits' => $selectedLimits,
+                'focusId' => $focusProfileId,
                 'candidates' => $llmCandidates,
             ])
         );
@@ -13395,8 +13546,11 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             $cachedConfidence = isset($cacheEntry['value']['confidenceById']) && is_array($cacheEntry['value']['confidenceById'])
                 ? $cacheEntry['value']['confidenceById']
                 : [];
+            $cachedExact = isset($cacheEntry['value']['scoreExactById']) && is_array($cacheEntry['value']['scoreExactById'])
+                ? $cacheEntry['value']['scoreExactById']
+                : [];
             if (($cacheEntry['hit'] ?? false) === true && $normalizedCachedScores !== null) {
-                $applied = $applyRawScores($normalizedCachedScores, $cachedConfidence);
+                $applied = $applyRawScores($normalizedCachedScores, $cachedConfidence, $cachedExact);
                 if (($applied['ok'] ?? false) === true) {
                     $appliedDetail = (array) $applied['detail'];
                     $appliedDetail['response']['cached'] = true;
@@ -13415,6 +13569,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         }
         $rawById = [];
         $confidenceById = [];
+        $scoreExactById = [];
         $pendingIds = $expectedIds;
         $usedFallback = false;
         $attemptError = '';
@@ -13431,7 +13586,10 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 (int) $config['maxOutputTokens'],
                 $domain,
                 (string) $config['reasoningEffort'],
-                $config['reasoningSummary'] ?? null
+                $config['reasoningSummary'] ?? null,
+                $selectedLimits,
+                $focusProfileId,
+                (string) ($focusCopy['description'] ?? '')
             );
             foreach ($scored['rawById'] as $scoredId => $scoredValue) {
                 $rawById[(string) $scoredId] = (int) $scoredValue;
@@ -13439,6 +13597,11 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             foreach ((array) ($scored['confidenceById'] ?? []) as $scoredId => $confidenceValue) {
                 if (is_numeric($confidenceValue) && !is_bool($confidenceValue)) {
                     $confidenceById[(string) $scoredId] = (float) $confidenceValue;
+                }
+            }
+            foreach ((array) ($scored['scoreExactById'] ?? []) as $scoredId => $exactValue) {
+                if (is_numeric($exactValue) && !is_bool($exactValue)) {
+                    $scoreExactById[(string) $scoredId] = (float) $exactValue;
                 }
             }
             $pendingIds = array_values($scored['failedIds']);
@@ -13461,7 +13624,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         if ($pendingIds !== []) {
             $detail['ranking']['unscoredCalls'] = $pendingIds;
         }
-        $applied = $applyRawScores($rawById, $confidenceById);
+        $applied = $applyRawScores($rawById, $confidenceById, $scoreExactById);
         if (($applied['ok'] ?? false) !== true) {
             return [
                 'results' => $results,
@@ -13474,7 +13637,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             muginPublicSearchWriteCacheValue(
                 'final-rerank',
                 $cacheKey,
-                ['rawScores' => $rawById, 'confidenceById' => $confidenceById],
+                ['rawScores' => $rawById, 'confidenceById' => $confidenceById, 'scoreExactById' => $scoreExactById],
                 $cacheTtl
             );
         }
@@ -13790,6 +13953,7 @@ if (!function_exists('muginPublicSearchBuildApiResultFromPubMed')) {
         $originSource = trim((string) ($candidateInfo['source'] ?? ($mergedSources[0] ?? 'pubmed')));
         $publicationDate = muginPublicSearchCitationDateFromPubMedSummary($summary);
         $year = muginPublicSearchExtractPubMedSummaryPublicationYear($summary);
+        $entrezDate = muginPublicSearchEntrezDateFromPubMedSummary($summary);
 
         // Foretraekker strukturerede forfatternavne fra efetch-XML'en (LastName/
         // ForeName/Initials), da esummary kun leverer en flad 'name'-streng.
@@ -13869,6 +14033,9 @@ if (!function_exists('muginPublicSearchBuildApiResultFromPubMed')) {
             'sourceLabel' => $citationJournalName,
             'publicationDate' => $publicationDate,
             'year' => $year,
+            'history' => $entrezDate !== ''
+                ? [['pubstatus' => 'entrez', 'date' => $entrezDate]]
+                : [],
             'language' => muginPublicSearchNormalizeSimpleList($summary['lang'] ?? [])[0] ?? '',
             'publicationTypes' => muginPublicSearchNormalizeSimpleList($summary['pubtype'] ?? []),
             'topics' => $topics,
@@ -14968,7 +15135,7 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                 if (!isset($summaryMap[$pmid])) {
                     continue;
                 }
-                $results[] = muginPublicSearchBuildApiResultFromPubMed(
+                $built = muginPublicSearchBuildApiResultFromPubMed(
                     $summaryMap[$pmid],
                     $abstractMap[$pmid]['abstract'] ?? '',
                     $pageOffset + $index + 1,
@@ -14979,6 +15146,15 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     $abstractMap[$pmid]['authors'] ?? [],
                     $abstractMap[$pmid]['keywords'] ?? []
                 );
+                $storedPercent = is_array($storedWindow)
+                    ? ($storedWindow['matchPercentByPmid'][$pmid] ?? null)
+                    : null;
+                if (is_numeric($storedPercent)) {
+                    $ranking = isset($built['ranking']) && is_array($built['ranking']) ? $built['ranking'] : [];
+                    $ranking['matchPercent'] = max(0, min(100, (int) $storedPercent));
+                    $built['ranking'] = $ranking;
+                }
+                $results[] = $built;
             }
 
             if ($collector !== null) {
@@ -15021,15 +15197,22 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     && $resultSetStoreTtl > 0
                 ) {
                     $orderedPmids = [];
+                    $matchPercentByPmid = [];
                     foreach ($results as $rerankedResult) {
                         $orderedPmid = muginPublicSearchNormalizePmid($rerankedResult['pmid'] ?? '');
-                        if ($orderedPmid !== '') {
-                            $orderedPmids[] = $orderedPmid;
+                        if ($orderedPmid === '') {
+                            continue;
+                        }
+                        $orderedPmids[] = $orderedPmid;
+                        $storedPercent = $rerankedResult['ranking']['matchPercent'] ?? null;
+                        if (is_numeric($storedPercent)) {
+                            $matchPercentByPmid[$orderedPmid] = max(0, min(100, (int) $storedPercent));
                         }
                     }
                     if (count($orderedPmids) > $pageSize) {
                         muginPublicSearchWriteCacheValue('final-rerank-window', $pipelineCacheKey, [
                             'pmids' => $orderedPmids,
+                            'matchPercentByPmid' => $matchPercentByPmid,
                             'totalCount' => $pubmedTotalCount,
                         ], $resultSetStoreTtl);
                     }
@@ -15648,7 +15831,7 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     continue;
                 }
                 $trusted = in_array($pmid, (array) ($hybridOrdering['pmids'] ?? []), true);
-                $results[] = muginPublicSearchBuildApiResultFromPubMed(
+                $built = muginPublicSearchBuildApiResultFromPubMed(
                     $summaryMap[$pmid],
                     $abstractMap[$pmid]['abstract'] ?? '',
                     $rank,
@@ -15660,8 +15843,16 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     $abstractMap[$pmid]['keywords'] ?? []
                 );
             } elseif (isset($doiWorkMap[$key])) {
-                $results[] = muginPublicSearchBuildApiResultFromOpenAlex($doiWorkMap[$key], $rank, $candidateInfo);
+                $built = muginPublicSearchBuildApiResultFromOpenAlex($doiWorkMap[$key], $rank, $candidateInfo);
+            } else {
+                continue;
             }
+            if (is_numeric($ref['matchPercent'] ?? null)) {
+                $ranking = isset($built['ranking']) && is_array($built['ranking']) ? $built['ranking'] : [];
+                $ranking['matchPercent'] = max(0, min(100, (int) $ref['matchPercent']));
+                $built['ranking'] = $ranking;
+            }
+            $results[] = $built;
         }
 
         if ($collector !== null) {

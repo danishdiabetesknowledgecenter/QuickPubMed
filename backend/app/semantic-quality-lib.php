@@ -2341,6 +2341,76 @@ if (!function_exists('muginSemanticQualityBuildRankContribution')) {
     }
 }
 
+if (!function_exists('muginSemanticQualitySaturationPivotScore')) {
+    /**
+     * combinedScore of a strong, realistic article: rank 1 in the strongest
+     * selected source, plus the single strongest quality bonus. Extra sources
+     * and the other bonuses are additional signals, so they are not required
+     * to reach this score. Citation, authority and recency multipliers stay at 1.
+     *
+     * @param array<string,mixed> $rerankConfig
+     * @param array<int,string> $sourceKeys
+     */
+    function muginSemanticQualitySaturationPivotScore(array $rerankConfig, array $sourceKeys): float
+    {
+        $base = max(0.0, (float) (muginSemanticQualityToFiniteNumber($rerankConfig['pmidBonus'] ?? null) ?? 0.0));
+        $bestSource = 0.0;
+        foreach ($sourceKeys as $sourceKey) {
+            $sourceKey = trim((string) $sourceKey);
+            if ($sourceKey === '') {
+                continue;
+            }
+            $contribution = muginSemanticQualityBuildRankContribution(['rank' => 1], $sourceKey, $rerankConfig);
+            $weighted = (float) ($contribution['weightedRrf'] ?? 0);
+            if ($weighted > $bestSource) {
+                $bestSource = $weighted;
+            }
+        }
+        $base += $bestSource;
+
+        $recencyBonus = 0.0;
+        $recencyMax = max(0.0, (float) (muginSemanticQualityToFiniteNumber($rerankConfig['recencyBonusMax'] ?? null) ?? 0.0));
+        if ($recencyMax > 0) {
+            if (($rerankConfig['recencyCurveEnabled'] ?? false) === true) {
+                $curve = muginSemanticQualityNormalizeRecencyCurve($rerankConfig['recencyCurve'] ?? null);
+                if (is_array($curve) && $curve !== []) {
+                    $recencyBonus = $recencyMax * (float) ($curve[0][1] ?? 0);
+                }
+            } else {
+                $halfLife = muginSemanticQualityToFiniteNumber($rerankConfig['recencyHalfLifeYears'] ?? null);
+                if ($halfLife !== null && $halfLife > 0) {
+                    $recencyBonus = $recencyMax;
+                }
+            }
+        }
+        $pubTypeMax = 0.0;
+        foreach ((array) ($rerankConfig['pubTypeWeights'] ?? []) as $weight) {
+            $number = muginSemanticQualityToFiniteNumber($weight);
+            if ($number !== null && $number > $pubTypeMax) {
+                $pubTypeMax = $number;
+            }
+        }
+        $tierMax = 0.0;
+        foreach ((array) ($rerankConfig['pubTypeTiers'] ?? []) as $tierEntry) {
+            $raw = is_array($tierEntry) ? ($tierEntry['bonus'] ?? null) : $tierEntry;
+            $number = muginSemanticQualityToFiniteNumber($raw);
+            if ($number !== null && $number > $tierMax) {
+                $tierMax = $number;
+            }
+        }
+        $strongestBonus = max(
+            $recencyBonus,
+            $pubTypeMax,
+            $tierMax,
+            max(0.0, (float) (muginSemanticQualityToFiniteNumber($rerankConfig['oaBonus'] ?? null) ?? 0.0)),
+            max(0.0, (float) (muginSemanticQualityToFiniteNumber($rerankConfig['clinicalBonus'] ?? null) ?? 0.0)),
+            max(0.0, (float) (muginSemanticQualityToFiniteNumber($rerankConfig['topicOverlapBonus'] ?? null) ?? 0.0))
+        );
+
+        return max(0.0, $base + $strongestBonus);
+    }
+}
+
 if (!function_exists('muginSemanticQualityBuildScoreTieBreaker')) {
     /**
      * @param array<string,mixed> $sourceData

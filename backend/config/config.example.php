@@ -719,10 +719,10 @@ define('MUGIN_SEMANTIC_LLM_RERANK_CONFIG', [
     'topN' => 25,
     'chatTopN' => 25,
     'decisionsTopN' => 25,
-    // Decisions only. An article at or above both values moves ahead of articles
-    // that miss either bar. Prior rank breaks ties inside that group.
     'promoteMinConfidence' => 0.75,
     'promoteCutoffScore' => 7,
+    // How far a decisions score of 0 or 9 can multiply combinedScore. Clamped to 0.95.
+    'decisionScoreWeight' => 0.7,
     'maxOutputTokens' => 400,
     // Cache LLM permutations by request payload so UnifiedSearch and the public
     // API reuse the same order for identical candidate sets (0 disables cache).

@@ -131,6 +131,49 @@ export function parseSinglePublicationDate(value) {
   return new Date(Number(nlm[1]), month, day);
 }
 
+/** Dag, måned og år, eller kun året. Opfinder ikke en dag, kilden ikke har. */
+export function formatResultListDate(value, language) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const locale = languageFormat[language] || languageFormat.en;
+  const parsed = parseSinglePublicationDate(text);
+  if (parsed && !Number.isNaN(parsed.getTime())) {
+    return parsed.toLocaleDateString(locale, dateOptions);
+  }
+  let year = 0;
+  let monthIndex = -1;
+  const yearFirst = text.match(/^(\d{4})(?:\s+|[-/])([A-Za-z]{3,9}|\d{1,2})\b/);
+  if (yearFirst) {
+    year = Number(yearFirst[1]);
+    const monthToken = yearFirst[2];
+    if (/^\d{1,2}$/.test(monthToken)) {
+      const monthNumber = Number(monthToken);
+      if (monthNumber >= 1 && monthNumber <= 12) monthIndex = monthNumber - 1;
+    } else {
+      monthIndex = CITATION_MONTHS.findIndex(
+        (name) => name.toLowerCase() === monthToken.slice(0, 3).toLowerCase()
+      );
+    }
+  }
+  if (monthIndex < 0) {
+    const monthFirst = text.match(/^([A-Za-z]{3,9})\s+(\d{4})\b/);
+    if (monthFirst) {
+      monthIndex = CITATION_MONTHS.findIndex(
+        (name) => name.toLowerCase() === monthFirst[1].slice(0, 3).toLowerCase()
+      );
+      year = Number(monthFirst[2]);
+    }
+  }
+  if (year >= 1000 && year <= 9999 && monthIndex >= 0) {
+    return new Date(year, monthIndex, 1).toLocaleDateString(locale, {
+      year: "numeric",
+      month: "short",
+    });
+  }
+  const yearOnly = text.match(/^(\d{4})$/);
+  return yearOnly ? yearOnly[1] : "";
+}
+
 export function getFormattedEntrezDate(history, language) {
   if (!Array.isArray(history)) return "";
   const match = history.find((item) => item?.pubstatus === "entrez");

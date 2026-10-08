@@ -938,8 +938,22 @@ components:
           type: string
         publicationDate:
           type: string
+          description: Citationsdatoen, ikke Entrez-datoen.
         year:
           type: string
+        history:
+          type: array
+          description: >
+            PubMeds Entrez-dato (edat), når den findes. Hver post har pubstatus
+            "entrez" og date. Det er dagen posten kom ind i Entrez, ikke publikationsdatoen.
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              pubstatus:
+                type: string
+              date:
+                type: string
         language:
           type: string
         publicationTypes:
@@ -1020,17 +1034,23 @@ components:
           additionalProperties: false
           description: >
             Optional rerank diagnostics. combinedScore and the breakdown are the
-            hybrid score from before the LLM final rerank.             llmScore is the 0-10
+            hybrid score from before the LLM final rerank. llmScore is the 0-9
             score from that final rerank when it ran. llmScoreRaw is present only
             when an empty abstract lowered the model score. llmConfidence is the
             decisions-model confidence from 0 to 1 when that model scored the article.
+            matchPercent is 0 to 100 from the same boosted score that orders the list.
+            It is saturated as 100 * score / (score + pivot). The pivot is one
+            third of a strong realistic article: rank 1 in the strongest selected
+            source, the single strongest quality bonus, and a decisions score of
+            7.5 at full confidence. That article is 75 percent. A higher score
+            approaches 100.
           properties:
             combinedScore:
               type: number
             llmScore:
               type: integer
               nullable: true
-              description: LLM relevance score from 0 to 10 after the empty-abstract cap.
+              description: LLM relevance score from 0 to 9 after the empty-abstract cap.
             llmScoreRaw:
               type: integer
               nullable: true
@@ -1039,6 +1059,14 @@ components:
               type: number
               nullable: true
               description: Decisions-model confidence from 0 to 1. Absent for chat scores.
+            matchPercent:
+              type: integer
+              minimum: 0
+              maximum: 100
+              description: >
+                Saturated share of the sort score. Rank 1 in the strongest selected
+                source, with the strongest single quality bonus and a decisions
+                score of 7.5 at full confidence, is 75. Higher scores approach 100.
             bestRank:
               type: integer
             sourceCount:

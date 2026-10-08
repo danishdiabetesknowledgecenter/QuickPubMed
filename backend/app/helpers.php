@@ -2256,22 +2256,30 @@ function muginFinalRerankSystemPromptLines(): array
 {
     return [
         'You score already validated scholarly search candidates.',
-        'Score each candidate on its own. Return a relevance integer from 0 to 10 for every provided id.',
+        'Score each candidate on its own. Return a relevance integer from 0 to 9 for every provided id.',
         'The id and the position in the list are labels, not a relevance ranking.',
         'Score only how directly the candidate answers userQuestion, using title, abstract, and topics together.',
         'retrievalQuery is only the string the databases were searched with. Use it to see why a candidate was retrieved. Do not treat its keywords as extra topics the user asked for.',
         'Do not score journal prestige, citation counts, publication type, or recency. Publication type and study design matter only when they change whether the paper answers userQuestion.',
+        'When selectedLimits are present, they are part of the question. If a candidate clearly falls outside one of them, it does not directly answer the question and must not score above 3, "same subject, but a different question". If the candidate does not say whether it meets a limit, do not lower it. A study type the user selected counts as such a limit.',
+        'When resultFocus is present, it is part of the question. If a candidate answers the question but clearly falls outside that focus, it must not score above 3, "same subject, but a different question". If the candidate does not say what the focus asks about, do not lower it.',
         'When topics are provided, use them as additive topical evidence together with title and abstract.',
         'Missing topics must not lower a candidate. Do not prefer a candidate merely because it has MeSH or a PMID.',
         'OpenAlex and Semantic Scholar topics are valid substitutes when MeSH is absent.',
         'A missing abstract cannot score above 6.',
-        'Use these anchors: 0 = different topic. 2 = shares a word with the question but answers something else. 4 = same condition, but a different population or intervention. 6 = same question, answered only indirectly. 8 = answers the question, with the right population and intervention. 10 = directly answers the question on population, intervention, and outcome.',
+        'Use these anchors: ' . implode('. ', array_map(
+            static function (int $index, string $label): string {
+                return $index . ' = ' . $label;
+            },
+            array_keys(muginFinalRerankDecisionCriteria()),
+            muginFinalRerankDecisionCriteria()
+        )) . '.',
     ];
 }
 
 function muginFinalRerankTaskLine(): string
 {
-    return 'Score how directly each candidate answers userQuestion. Return every id once with an integer relevance from 0 to 10.';
+    return 'Score how directly each candidate answers userQuestion. Return every id once with an integer relevance from 0 to 9.';
 }
 
 function muginFinalRerankMinScoreGap(): int
@@ -2286,7 +2294,7 @@ function muginFinalRerankMissingAbstractCap(): int
 
 /**
  * Strict score schema. minimum/maximum are omitted so a provider that rejects
- * those keywords still accepts the call. PHP enforces 0-10.
+ * those keywords still accepts the call. PHP enforces 0-9.
  *
  * @return array<string,mixed>
  */
@@ -2334,7 +2342,7 @@ function muginFinalRerankNormalizeScoreId($value): string
 }
 
 /**
- * Whole numbers 0-10. 0 is a valid score. null means reject the whole set.
+ * Whole numbers 0-9. 0 is a valid score. null means reject the whole set.
  */
 function muginFinalRerankParseRelevance($value): ?int
 {
@@ -2342,14 +2350,14 @@ function muginFinalRerankParseRelevance($value): ?int
         return null;
     }
     if (is_int($value)) {
-        return ($value >= 0 && $value <= 10) ? $value : null;
+        return ($value >= 0 && $value <= 9) ? $value : null;
     }
     if (is_float($value)) {
         if (!is_finite($value) || floor($value) !== $value) {
             return null;
         }
         $asInt = (int) $value;
-        return ($asInt >= 0 && $asInt <= 10) ? $asInt : null;
+        return ($asInt >= 0 && $asInt <= 9) ? $asInt : null;
     }
     if (!is_string($value)) {
         return null;
@@ -2360,11 +2368,11 @@ function muginFinalRerankParseRelevance($value): ?int
     }
     if (preg_match('/^[+-]?\d+$/', $trimmed) === 1) {
         $asInt = (int) $trimmed;
-        return ($asInt >= 0 && $asInt <= 10) ? $asInt : null;
+        return ($asInt >= 0 && $asInt <= 9) ? $asInt : null;
     }
     if (preg_match('/^[+-]?\d+\.0+$/', $trimmed) === 1) {
         $asInt = (int) $trimmed;
-        return ($asInt >= 0 && $asInt <= 10) ? $asInt : null;
+        return ($asInt >= 0 && $asInt <= 9) ? $asInt : null;
     }
     return null;
 }
@@ -2601,20 +2609,60 @@ function muginFinalRerankModelUsesDecisions(string $model): bool
 function muginFinalRerankDecisionCriteria(): array
 {
     return [
-        'different topic',
+        'different subject',
         'shares a word with the question but answers something else',
-        'between a shared word and the same condition with a different population or intervention',
-        'same condition, but a different population or intervention',
-        'between a different population or intervention and an indirect answer',
+        'names the subject, but not the question',
+        'same subject, but a different question',
+        'raises the user\'s question, but does not answer it',
         'same question, answered only indirectly',
-        'between an indirect answer and an answer with the right population and intervention',
-        'answers the question, with the right population and intervention',
-        'between the right population and intervention and a direct answer',
-        'directly answers the question on population, intervention, and outcome',
+        'same question, answered only in part',
+        'answers the question',
+        'answers the question, including the specific point the user asked about',
+        'directly answers every part of the question',
     ];
 }
 
-function muginFinalRerankDecisionInstructions(string $userQuestion, string $retrievalQuery): string
+/**
+ * @param array<int,mixed> $selectedLimits
+ * @return array<int,string>
+ */
+function muginFinalRerankNormalizeConstraintLabels(array $selectedLimits): array
+{
+    $labels = [];
+    $seen = [];
+    foreach ($selectedLimits as $label) {
+        if (!is_string($label) && !is_numeric($label)) {
+            continue;
+        }
+        $trimmed = trim((string) $label);
+        if ($trimmed === '') {
+            continue;
+        }
+        $key = strtolower($trimmed);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $labels[] = $trimmed;
+    }
+    return $labels;
+}
+
+function muginFinalRerankFocusConstrainsScore(string $focusId): bool
+{
+    return in_array($focusId, ['highest-evidence', 'clinical-practice'], true);
+}
+
+/**
+ * @param array<int,mixed> $selectedLimits
+ */
+function muginFinalRerankDecisionInstructions(
+    string $userQuestion,
+    string $retrievalQuery,
+    array $selectedLimits = [],
+    string $focusId = '',
+    string $focusDescription = ''
+): string
 {
     $lines = [
         'How directly does this article answer the user question?',
@@ -2623,6 +2671,24 @@ function muginFinalRerankDecisionInstructions(string $userQuestion, string $retr
     $retrievalQuery = trim($retrievalQuery);
     if ($retrievalQuery !== '') {
         $lines[] = 'The databases were searched with this retrieval query. Use it only to see why the article was retrieved. Do not treat its keywords as extra topics the user asked for: ' . $retrievalQuery;
+    }
+    $constraints = muginFinalRerankNormalizeConstraintLabels($selectedLimits);
+    if ($constraints !== []) {
+        $lines[] = 'The user also set these search constraints. They are part of the question: ' . implode('; ', $constraints) . '.';
+        $lines[] = 'If the article clearly falls outside one of them, it does not directly answer the question. Score it no higher than: same subject, but a different question.';
+        $lines[] = 'If the article does not say whether it meets a constraint, do not lower it.';
+        $lines[] = 'A study type the user selected is one of these constraints.';
+    }
+    $focusId = trim($focusId);
+    $focusDescription = trim($focusDescription);
+    if (muginFinalRerankFocusConstrainsScore($focusId)) {
+        $focusLine = 'The user chose this result focus. It is part of the question';
+        if ($focusDescription !== '') {
+            $focusLine .= ': ' . $focusDescription;
+        }
+        $lines[] = $focusLine . '.';
+        $lines[] = 'If the article answers the free-text question but clearly falls outside that focus, it does not directly answer the question. Score it no higher than: same subject, but a different question.';
+        $lines[] = 'If the article does not say what the focus asks about, do not lower it.';
     }
     $lines[] = 'Score this article alone. Do not score journal prestige, citation counts, publication type, or recency. Publication type and study design matter only when they change whether the article answers the user question.';
     $lines[] = 'Missing topics must not lower the article.';
@@ -2658,6 +2724,7 @@ function muginFinalRerankArticleInputText(string $title, string $abstract, array
 }
 
 /**
+ * @param array<int,mixed> $selectedLimits
  * @return array<string,mixed>
  */
 function muginFinalRerankBuildDecisionRequest(
@@ -2665,7 +2732,10 @@ function muginFinalRerankBuildDecisionRequest(
     string $articleText,
     string $userQuestion,
     string $retrievalQuery,
-    int $maxOutputTokens
+    int $maxOutputTokens,
+    array $selectedLimits = [],
+    string $focusId = '',
+    string $focusDescription = ''
 ): array {
     return [
         'model' => $model,
@@ -2676,7 +2746,13 @@ function muginFinalRerankBuildDecisionRequest(
                 'questions' => [
                     'relevance' => [
                         'type' => 'score',
-                        'instructions' => muginFinalRerankDecisionInstructions($userQuestion, $retrievalQuery),
+                        'instructions' => muginFinalRerankDecisionInstructions(
+                            $userQuestion,
+                            $retrievalQuery,
+                            $selectedLimits,
+                            $focusId,
+                            $focusDescription
+                        ),
                         'criteria' => muginFinalRerankDecisionCriteria(),
                     ],
                 ],
@@ -2715,10 +2791,30 @@ function muginFinalRerankParseDecisionAnswer(string $text): ?array
             $confidence = $confidenceNumber;
         }
     }
+    $exact = max(0.0, min((float) $max, $number));
     return [
-        'score' => max(0, min($max, (int) round($number))),
+        'score' => max(0, min($max, (int) round($exact))),
+        'scoreExact' => $exact,
         'confidence' => $confidence,
     ];
+}
+
+/**
+ * Midpoint 4.5 leaves the existing score unchanged. A measured confidence of 0
+ * does not move the article. A missing confidence, as from a chat model, counts
+ * as 1 so the score can still boost.
+ */
+function muginFinalRerankDecisionBoostFactor(float $score, $confidence, float $weight): float
+{
+    $weight = max(0.0, min(0.95, $weight));
+    $score = max(0.0, min(9.0, $score));
+    $measured = is_numeric($confidence) && !is_bool($confidence);
+    if ($measured && (float) $confidence === 0.0) {
+        return 1.0;
+    }
+    $confidenceValue = $measured ? max(0.0, min(1.0, (float) $confidence)) : 1.0;
+    $centered = (($score / 9.0) - 0.5) * 2.0;
+    return 1.0 + ($confidenceValue * $weight * $centered);
 }
 
 function muginFinalRerankParseDecisionScoreText(string $text): ?int
