@@ -122,6 +122,7 @@ foreach ($rawCandidates as $rawCandidate) {
         'id' => $id,
         'title' => $title,
         'abstract' => muginSemanticRerankNormalizeString($rawCandidate['abstract'] ?? ''),
+        'bibliography' => muginFinalRerankBibliographyFromEntry($rawCandidate),
         'retracted' => ($rawCandidate['isRetracted'] ?? null) === true
             || (
                 isset($rawCandidate['qualitySignals'])
@@ -180,6 +181,9 @@ foreach ($candidates as $candidate) {
     ];
     if (!empty($candidate['topics'])) {
         $modelCandidate['topics'] = $candidate['topics'];
+    }
+    if (!empty($candidate['bibliography']) && muginFinalRerankBibliographyLines($candidate['bibliography']) !== []) {
+        $modelCandidate['bibliography'] = $candidate['bibliography'];
     }
     $modelCandidates[] = $modelCandidate;
 }

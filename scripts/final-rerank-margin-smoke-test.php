@@ -264,6 +264,21 @@ assertTrue(strpos($newestInstructions, 'Prefer more recent studies') === false, 
 assertTrue(strpos(muginFinalRerankArticleInputText('A title', '', []), 'highest-evidence') === false, 'the article text does not contain the result focus');
 assertTrue(strpos(muginFinalRerankArticleInputText('A title', '', []), 'hvad virker') === false, 'the article text does not contain the user question');
 assertTrue(strpos(muginFinalRerankArticleInputText('A title', '', []), 'systematic review') === false, 'the article text does not contain the selected filter');
+$bibliographyText = muginFinalRerankArticleInputText('12397 Predictors', 'Presentation: 6/3/2024', [], [
+    'source' => 'Journal of the Endocrine Society',
+    'date' => '2024-10-01',
+    'volume' => '8',
+    'issue' => 'Supplement_1',
+    'pages' => '',
+    'publicationTypes' => ['article'],
+]);
+assertTrue(strpos($bibliographyText, 'Source: Journal of the Endocrine Society') !== false, 'decisions article text includes the source');
+assertTrue(strpos($bibliographyText, 'Issue: Supplement_1') !== false, 'decisions article text includes the issue');
+assertTrue(strpos($bibliographyText, 'Publication type: article') !== false, 'decisions article text includes the publication type');
+assertTrue(strpos($bibliographyText, 'Pages:') === false, 'an empty page field is omitted');
+assertTrue(strpos(muginFinalRerankArticleInputText('A title', '', []), 'Issue:') === false, 'bibliography lines are omitted when no bibliographic data is sent');
+$decisionInstructions = muginFinalRerankDecisionInstructions('what works', 'diabetes', ['Scientific article']);
+assertTrue(strpos($decisionInstructions, 'bibliographic lines') !== false, 'decisions instructions tell the model to read bibliographic lines');
 $systemLines = implode("\n", muginFinalRerankSystemPromptLines());
 assertTrue(strpos($systemLines, 'When selectedLimits are present') !== false, 'the chat prompt explains selected limits');
 assertTrue(strpos($systemLines, 'from 0 to 9') !== false, 'the chat prompt asks for a score from 0 to 9');

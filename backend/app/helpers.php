@@ -2690,17 +2690,72 @@ function muginFinalRerankDecisionInstructions(
         $lines[] = 'If the article answers the free-text question but clearly falls outside that focus, it does not directly answer the question. Score it no higher than: same subject, but a different question.';
         $lines[] = 'If the article does not say what the focus asks about, do not lower it.';
     }
-    $lines[] = 'Score this article alone. Do not score journal prestige, citation counts, publication type, or recency. Publication type and study design matter only when they change whether the article answers the user question.';
+    $lines[] = 'Score this article alone. Read the title, abstract, topics, and any bibliographic lines together. Bibliographic lines may name the source, date, volume, issue, pages, and publication type. Do not score journal prestige, citation counts, or recency. Publication type, issue, and pages matter only when they change whether the article answers the user question.';
     $lines[] = 'Missing topics must not lower the article.';
     return implode("\n", $lines);
 }
 
 /**
- * @param array<int,array<string,mixed>> $topics
+ * Bibliographic lines for the decisions article text. Empty fields are omitted.
+ *
+ * @param array<string,mixed> $bibliography
+ * @return array<int,string>
  */
-function muginFinalRerankArticleInputText(string $title, string $abstract, array $topics = []): string
+function muginFinalRerankBibliographyLines(array $bibliography): array
+{
+    $lines = [];
+    $append = static function (string $label, $value) use (&$lines): void {
+        if (is_array($value)) {
+            $parts = [];
+            foreach ($value as $entry) {
+                $text = trim((string) $entry);
+                if ($text !== '') {
+                    $parts[] = $text;
+                }
+            }
+            $value = implode(', ', $parts);
+        }
+        $text = trim((string) $value);
+        if ($text !== '') {
+            $lines[] = $label . ': ' . $text;
+        }
+    };
+    $append('Source', $bibliography['source'] ?? '');
+    $append('Date', $bibliography['date'] ?? '');
+    $append('Volume', $bibliography['volume'] ?? '');
+    $append('Issue', $bibliography['issue'] ?? '');
+    $append('Pages', $bibliography['pages'] ?? '');
+    $append('Publication type', $bibliography['publicationTypes'] ?? ($bibliography['publicationType'] ?? ''));
+    return $lines;
+}
+
+/**
+ * @param array<string,mixed> $entry
+ * @return array<string,mixed>
+ */
+function muginFinalRerankBibliographyFromEntry(array $entry): array
+{
+    $journal = isset($entry['journal']) && is_array($entry['journal']) ? $entry['journal'] : [];
+    $types = $entry['publicationTypes'] ?? ($entry['pubTypes'] ?? ($entry['pubtype'] ?? ($entry['pubType'] ?? [])));
+    if (!is_array($types)) {
+        $types = [$types];
+    }
+    return [
+        'source' => trim((string) ($journal['name'] ?? ($entry['sourceLabel'] ?? ($entry['fulljournalname'] ?? '')))),
+        'date' => trim((string) ($entry['publicationDate'] ?? ($entry['pubDate'] ?? ($entry['year'] ?? '')))),
+        'volume' => trim((string) ($journal['volume'] ?? ($entry['volume'] ?? ''))),
+        'issue' => trim((string) ($journal['issue'] ?? ($entry['issue'] ?? ''))),
+        'pages' => trim((string) ($journal['pages'] ?? ($entry['pages'] ?? ''))),
+        'publicationTypes' => $types,
+    ];
+}
+
+function muginFinalRerankArticleInputText(string $title, string $abstract, array $topics = [], array $bibliography = []): string
 {
     $lines = ['Title: ' . trim($title)];
+    foreach (muginFinalRerankBibliographyLines($bibliography) as $line) {
+        $lines[] = $line;
+    }
     $abstract = trim($abstract);
     if ($abstract !== '') {
         $lines[] = 'Abstract: ' . $abstract;

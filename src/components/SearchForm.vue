@@ -6699,6 +6699,23 @@
               ? entry.topics
               : (Array.isArray(entry?.value?.topics) ? entry.value.topics : []);
             const topics = buildLlmTopicsPayload(entryTopics, LLM_TOPIC_CAP);
+            const publicationTypes = [];
+            const seenPublicationTypes = new Set();
+            const pushPublicationType = (value) => {
+              const list = Array.isArray(value) ? value : [value];
+              list.forEach((item) => {
+                const text = String(item || "").trim();
+                if (!text) return;
+                const key = text.toLowerCase();
+                if (seenPublicationTypes.has(key)) return;
+                seenPublicationTypes.add(key);
+                publicationTypes.push(text);
+              });
+            };
+            pushPublicationType(entry?.pubtype);
+            pushPublicationType(entry?.pubType);
+            pushPublicationType(entry?.publicationTypes);
+            pushPublicationType(qualitySignals.pubTypes);
 
             requestCandidates.push({
               // Use a short positional id for the model round-trip. Small models
@@ -6709,9 +6726,13 @@
               id: String(requestCandidates.length + 1),
               title,
               abstract: abstractText,
-              publicationDate: String(entry?.publicationDate || entry?.pubDate || entry?.pubdate || "").trim(),
-              source: String(entry?.originSource || entry?.source || "").trim(),
+              publicationDate: String(entry?.publicationDate || entry?.pubDate || entry?.pubdate || entry?.year || "").trim(),
+              source: String(entry?.originSource || "").trim(),
               sourceLabel: String(entry?.fulljournalname || entry?.source || "").trim(),
+              volume: String(entry?.volume || "").trim(),
+              issue: String(entry?.issue || "").trim(),
+              pages: String(entry?.pages || "").trim(),
+              ...(publicationTypes.length > 0 ? { publicationTypes } : {}),
               ...qualitySignals,
               ...(topics.length > 0 ? { topics } : {}),
               entry,
@@ -7108,6 +7129,24 @@
           }
           const candidateMetadata =
             candidate?.metadata && typeof candidate.metadata === "object" ? candidate.metadata : {};
+          const mergedPublicationTypes = [];
+          const seenPublicationTypes = new Set();
+          const pushPublicationType = (value) => {
+            const list = Array.isArray(value) ? value : [value];
+            list.forEach((entry) => {
+              const text = String(entry || "").trim();
+              if (!text) return;
+              const key = text.toLowerCase();
+              if (seenPublicationTypes.has(key)) return;
+              seenPublicationTypes.add(key);
+              mergedPublicationTypes.push(text);
+            });
+          };
+          pushPublicationType(candidateMetadata.publicationTypes);
+          pushPublicationType(candidateMetadata.pubTypes);
+          pushPublicationType(candidateMetadata.workType);
+          pushPublicationType(hydrated?.pubtype);
+          pushPublicationType(hydrated?.pubType);
           const hydratedCandidate = {
             ...candidate,
             doi: normalizedDoi,
@@ -7118,7 +7157,11 @@
                 String(hydrated?.pubDate || "").slice(0, 4) ||
                 String(candidate?.year || "").trim(),
               sourceType: candidateMetadata.sourceType || hydrated?.sourceType || "",
-              sourceDisplayName: candidateMetadata.sourceDisplayName || hydrated?.sourceDisplayName || "",
+              sourceDisplayName:
+                candidateMetadata.sourceDisplayName ||
+                hydrated?.sourceDisplayName ||
+                hydrated?.fulljournalname ||
+                "",
               sourceAbbreviatedTitle:
                 candidateMetadata.sourceAbbreviatedTitle || hydrated?.sourceAbbreviatedTitle || "",
               publicationDate:
@@ -7127,6 +7170,8 @@
               volume: candidateMetadata.volume || String(hydrated?.volume || "").trim(),
               issue: candidateMetadata.issue || String(hydrated?.issue || "").trim(),
               pages: candidateMetadata.pages || String(hydrated?.pages || "").trim(),
+              workType: candidateMetadata.workType || String(hydrated?.pubType || "").trim(),
+              publicationTypes: mergedPublicationTypes,
             },
           };
           const ruleExplanation =

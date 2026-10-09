@@ -8046,7 +8046,7 @@
         );
         params.set(
           "select",
-          "id,display_name,doi,ids,publication_year,relevance_score,type,primary_location"
+          "id,display_name,doi,ids,publication_year,relevance_score,type,primary_location,biblio"
         );
         const filterParts = [];
         const languageFilters = Array.isArray(options?.languageFilters) ? options.languageFilters : [];
@@ -8204,6 +8204,10 @@
             primaryLocation?.source && typeof primaryLocation.source === "object"
               ? primaryLocation.source
               : {};
+          const biblio = work?.biblio && typeof work.biblio === "object" ? work.biblio : {};
+          const firstPage = String(biblio.first_page || "").trim();
+          const lastPage = String(biblio.last_page || "").trim();
+          const pages = firstPage && lastPage ? `${firstPage}-${lastPage}` : firstPage || lastPage;
           if (pmidValue) {
             pmids.push(pmidValue);
           } else if (doiValue) {
@@ -8223,6 +8227,8 @@
               sourceType: source?.type || "",
               sourceDisplayName: source?.display_name || "",
               sourceAbbreviatedTitle: source?.abbreviated_title || "",
+              issue: String(biblio.issue || "").trim(),
+              pages,
               searchMode,
             },
           });

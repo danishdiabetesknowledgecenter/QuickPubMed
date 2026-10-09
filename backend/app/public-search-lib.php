@@ -3187,6 +3187,7 @@ if (!function_exists('muginPublicSearchNormalizePostValidationRule')) {
             'requireAnyTextSignals' => $normalizeList($rule['requireAnyTextSignals'] ?? ($rule['requireAnyTitleSignals'] ?? [])),
             'requireAllTextSignals' => $normalizeList($rule['requireAllTextSignals'] ?? []),
             'excludeAnyTextSignals' => $normalizeList($rule['excludeAnyTextSignals'] ?? ($rule['excludeAnyTitleSignals'] ?? [])),
+            'excludeConferenceAbstracts' => !empty($rule['excludeConferenceAbstracts']),
             'allowSourceProviders' => $normalizeList($rule['allowSourceProviders'] ?? []),
             'excludeSourceProviders' => $normalizeList($rule['excludeSourceProviders'] ?? []),
             'metadataFieldConditions' => $conditions,
@@ -3195,6 +3196,7 @@ if (!function_exists('muginPublicSearchNormalizePostValidationRule')) {
             empty($normalized['requireAnyTextSignals'])
             && empty($normalized['requireAllTextSignals'])
             && empty($normalized['excludeAnyTextSignals'])
+            && empty($normalized['excludeConferenceAbstracts'])
             && empty($normalized['allowSourceProviders'])
             && empty($normalized['excludeSourceProviders'])
             && empty($normalized['metadataFieldConditions'])
@@ -11969,12 +11971,36 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
                 $workSource = isset($work['primary_location']['source']) && is_array($work['primary_location']['source'])
                     ? $work['primary_location']['source']
                     : [];
+                $workBiblio = isset($work['biblio']) && is_array($work['biblio']) ? $work['biblio'] : [];
+                $workFirstPage = trim((string) ($workBiblio['first_page'] ?? ''));
+                $workLastPage = trim((string) ($workBiblio['last_page'] ?? ''));
+                $workPages = $workFirstPage !== '' && $workLastPage !== ''
+                    ? $workFirstPage . '-' . $workLastPage
+                    : ($workFirstPage !== '' ? $workFirstPage : $workLastPage);
+                $workIssue = trim((string) ($workBiblio['issue'] ?? ''));
+                $workSourceName = trim((string) ($workSource['display_name'] ?? ''));
+                $ruleMetadata = isset($ruleCandidate['metadata']) && is_array($ruleCandidate['metadata'])
+                    ? $ruleCandidate['metadata']
+                    : [];
                 $ruleCandidate['enriched'] = array_merge($ruleEnriched, [
                     'publicationYear' => $work['publication_year'] ?? ($ruleEnriched['publicationYear'] ?? null),
                     'publicationDate' => $work['publication_date'] ?? ($ruleEnriched['publicationDate'] ?? ''),
-                    'workType' => $work['type'] ?? ($ruleEnriched['workType'] ?? ''),
+                    'workType' => trim((string) ($work['type'] ?? '')) !== ''
+                        ? trim((string) $work['type'])
+                        : ($ruleEnriched['workType'] ?? ($ruleMetadata['workType'] ?? '')),
                     'sourceType' => $workSource['type'] ?? ($ruleEnriched['sourceType'] ?? ''),
-                    'venue' => $workSource['display_name'] ?? ($ruleEnriched['venue'] ?? ''),
+                    'venue' => $workSourceName !== ''
+                        ? $workSourceName
+                        : ($ruleEnriched['venue'] ?? ($ruleMetadata['venue'] ?? ($ruleMetadata['sourceDisplayName'] ?? ''))),
+                    'sourceDisplayName' => $workSourceName !== ''
+                        ? $workSourceName
+                        : ($ruleEnriched['sourceDisplayName'] ?? ($ruleMetadata['sourceDisplayName'] ?? '')),
+                    'issue' => $workIssue !== ''
+                        ? $workIssue
+                        : ($ruleEnriched['issue'] ?? ($ruleMetadata['issue'] ?? '')),
+                    'pages' => $workPages !== ''
+                        ? $workPages
+                        : ($ruleEnriched['pages'] ?? ($ruleMetadata['pages'] ?? '')),
                     'language' => $work['language'] ?? ($ruleEnriched['language'] ?? ''),
                 ]);
                 $ruleExplanation = muginSemanticQualityCandidateMatchesPostValidation(
@@ -13100,7 +13126,8 @@ if (!function_exists('muginPublicSearchScoreFinalRerankWithModel')) {
                     muginFinalRerankArticleInputText(
                         (string) ($candidate['title'] ?? ''),
                         (string) ($candidate['abstract'] ?? ''),
-                        is_array($candidate['topics'] ?? null) ? $candidate['topics'] : []
+                        is_array($candidate['topics'] ?? null) ? $candidate['topics'] : [],
+                        is_array($candidate['bibliography'] ?? null) ? $candidate['bibliography'] : []
                     ),
                     $userQuestion,
                     $retrievalQuery,
@@ -13156,7 +13183,9 @@ if (!function_exists('muginPublicSearchScoreFinalRerankWithModel')) {
 
         $pendingCandidates = [];
         foreach ($pendingIds as $id) {
-            $pendingCandidates[] = $candidatesById[$id];
+            $pendingCandidate = $candidatesById[$id];
+            unset($pendingCandidate['bibliography']);
+            $pendingCandidates[] = $pendingCandidate;
         }
         $chatUser = [
             'userQuestion' => $userQuestion,
@@ -13384,6 +13413,12 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             ];
             if (!empty($candidate['topics'])) {
                 $llmCandidate['topics'] = $candidate['topics'];
+            }
+            $bibliography = muginFinalRerankBibliographyFromEntry(
+                isset($candidate['entry']) && is_array($candidate['entry']) ? $candidate['entry'] : []
+            );
+            if (muginFinalRerankBibliographyLines($bibliography) !== []) {
+                $llmCandidate['bibliography'] = $bibliography;
             }
             $llmCandidates[] = $llmCandidate;
         }

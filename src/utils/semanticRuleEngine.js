@@ -1,3 +1,4 @@
+import { isConferenceAbstract } from "@/utils/conferenceAbstractDetector.js";
 import { normalizeDoiValue, normalizePmidValue } from "@/utils/resultAdapters";
 
 function normalizeLowerString(value) {
@@ -308,6 +309,69 @@ export function evaluateSemanticMetadataFieldCondition(snapshot, condition) {
   return condition.negate ? !passed : passed;
 }
 
+function pushConferenceAbstractType(types, value) {
+  if (Array.isArray(value)) {
+    value.forEach((entry) => pushConferenceAbstractType(types, entry));
+    return;
+  }
+  const text = String(value || "").trim();
+  if (text) types.push(text);
+}
+
+function collectConferenceAbstractRecord(candidate, metadataByDoi, metadataByOpenAlexId, openAlexCachedValue) {
+  const metadataList = [];
+  if (candidate?.metadata && typeof candidate.metadata === "object") {
+    metadataList.push(candidate.metadata);
+  }
+  const metadataEntry = resolveMetadataEntry(candidate, metadataByDoi, metadataByOpenAlexId);
+  if (metadataEntry?.bySource && typeof metadataEntry.bySource === "object") {
+    Object.values(metadataEntry.bySource).forEach((entries) => {
+      (Array.isArray(entries) ? entries : []).forEach((entry) => {
+        if (entry?.metadata && typeof entry.metadata === "object") {
+          metadataList.push(entry.metadata);
+        }
+      });
+    });
+  }
+  if (openAlexCachedValue && typeof openAlexCachedValue === "object") {
+    metadataList.push({
+      workType: openAlexCachedValue.pubType,
+      publicationTypes: openAlexCachedValue.pubtype,
+      issue: openAlexCachedValue.issue,
+      pages: openAlexCachedValue.pages,
+      sourceDisplayName: openAlexCachedValue.sourceDisplayName || openAlexCachedValue.fulljournalname,
+    });
+  }
+
+  const types = [];
+  let issue = "";
+  let pages = "";
+  const sourceNames = [];
+  metadataList.forEach((metadata) => {
+    pushConferenceAbstractType(types, metadata.workType);
+    pushConferenceAbstractType(types, metadata.pubType);
+    pushConferenceAbstractType(types, metadata.publicationTypes);
+    pushConferenceAbstractType(types, metadata.pubTypes);
+    if (!issue) issue = String(metadata.issue || "").trim();
+    if (!pages) pages = String(metadata.pages || "").trim();
+    const sourceName = String(
+      metadata.sourceDisplayName || metadata.venue || metadata.fulljournalname || metadata.source || ""
+    ).trim();
+    if (sourceName) sourceNames.push(sourceName);
+  });
+  pushConferenceAbstractType(types, candidate?.pubType);
+  pushConferenceAbstractType(types, candidate?.pubtype);
+
+  return {
+    title: String(candidate?.title || "").trim(),
+    doi: String(candidate?.doi || "").trim(),
+    types,
+    issue,
+    pages,
+    sourceName: sourceNames.join(" "),
+  };
+}
+
 function evaluateCandidateSemanticRule({
   candidate,
   metadataByDoi,
@@ -315,6 +379,7 @@ function evaluateCandidateSemanticRule({
   rule,
   sourceProviders,
   metadataSnapshot,
+  openAlexCachedValue = null,
 }) {
   const signalTexts = getCandidateSemanticSignalTexts(
     candidate,
@@ -340,6 +405,17 @@ function evaluateCandidateSemanticRule({
   const hasExcludedProvider =
     Array.isArray(rule?.excludeSourceProviders) &&
     rule.excludeSourceProviders.some((provider) => sourceProviders.includes(provider));
+  const excludeConferenceAbstracts = rule?.excludeConferenceAbstracts === true;
+  const matchedConferenceAbstract =
+    excludeConferenceAbstracts &&
+    isConferenceAbstract(
+      collectConferenceAbstractRecord(
+        candidate,
+        metadataByDoi,
+        metadataByOpenAlexId,
+        openAlexCachedValue
+      )
+    );
   const metadataConditions = Array.isArray(rule?.metadataFieldConditions)
     ? rule.metadataFieldConditions
     : [];
@@ -375,6 +451,9 @@ function evaluateCandidateSemanticRule({
   if (Array.isArray(rule?.excludeSourceProviders) && rule.excludeSourceProviders.length > 0) {
     negativeChecks.push(!hasExcludedProvider);
   }
+  if (excludeConferenceAbstracts) {
+    negativeChecks.push(!matchedConferenceAbstract);
+  }
 
   const positivePassed =
     positiveChecks.length === 0
@@ -400,6 +479,9 @@ function evaluateCandidateSemanticRule({
   }
   if (hasExcludedProvider) {
     failures.push("provider_excluded");
+  }
+  if (matchedConferenceAbstract) {
+    failures.push("conference_abstract");
   }
   if (!matchesMetadataFieldConditions) {
     failures.push("metadata_conditions_failed");
@@ -463,6 +545,7 @@ export function explainCandidateActiveSemanticDoiOnlyRules({
       rule,
       sourceProviders,
       metadataSnapshot,
+      openAlexCachedValue,
     });
 
   if (ruleGroups.length > 0) {

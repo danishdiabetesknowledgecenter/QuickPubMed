@@ -15,6 +15,7 @@
  * - requireAnyTextSignals
  * - requireAllTextSignals
  * - excludeAnyTextSignals
+ * - excludeConferenceAbstracts
  * - allowSourceProviders
  * - excludeSourceProviders
  * - metadataFieldConditions
@@ -81,6 +82,7 @@ export const SEMANTIC_DOI_ONLY_RULE_TEMPLATE = Object.freeze({
   requireAnyTextSignals: [],
   requireAllTextSignals: [],
   excludeAnyTextSignals: [],
+  excludeConferenceAbstracts: false,
   allowSourceProviders: [],
   excludeSourceProviders: [],
   metadataFieldConditions: [],
@@ -156,6 +158,7 @@ export function normalizeSemanticDoiOnlyFilterRule(rule) {
   );
   const allowSourceProviders = normalizeSemanticSignalList(rule.allowSourceProviders);
   const excludeSourceProviders = normalizeSemanticSignalList(rule.excludeSourceProviders);
+  const excludeConferenceAbstracts = rule.excludeConferenceAbstracts === true;
   const metadataFieldConditions = (Array.isArray(rule.metadataFieldConditions)
     ? rule.metadataFieldConditions
     : []
@@ -167,6 +170,7 @@ export function normalizeSemanticDoiOnlyFilterRule(rule) {
     requireAnyTextSignals.length === 0 &&
     requireAllTextSignals.length === 0 &&
     excludeAnyTextSignals.length === 0 &&
+    !excludeConferenceAbstracts &&
     allowSourceProviders.length === 0 &&
     excludeSourceProviders.length === 0 &&
     metadataFieldConditions.length === 0
@@ -182,6 +186,7 @@ export function normalizeSemanticDoiOnlyFilterRule(rule) {
     requireAnyTextSignals,
     requireAllTextSignals,
     excludeAnyTextSignals,
+    excludeConferenceAbstracts,
     allowSourceProviders,
     excludeSourceProviders,
     metadataFieldConditions,
@@ -202,6 +207,7 @@ export function normalizeSemanticDoiOnlyFilterRule(rule) {
     requireAnyTextSignals,
     requireAllTextSignals,
     excludeAnyTextSignals,
+    excludeConferenceAbstracts,
     allowSourceProviders,
     excludeSourceProviders,
     metadataFieldConditions,

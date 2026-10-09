@@ -1200,12 +1200,7 @@
                                     "textScopes": [
                                         "sourceMetadataTexts"
                                     ],
-                                    "excludeAnyTextSignals": [
-                                        "conference abstract",
-                                        "conference abstracts",
-                                        "supplement",
-                                        "suppl"
-                                    ],
+                                    "excludeConferenceAbstracts": true,
                                     "metadataFieldConditions": [
                                         {
                                             "field": "candidateSourceType",

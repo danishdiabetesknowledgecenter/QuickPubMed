@@ -20,6 +20,7 @@
  * - src/utils/pubTypeClassifier.js
  * - src/utils/semanticReranking.js
  * - src/utils/semanticRuleEngine.js
+ * - src/utils/conferenceAbstractDetector.js
  */
 
 // =====================================================================
@@ -830,6 +831,181 @@ if (!function_exists('muginSemanticQualityEvaluateMetadataFieldCondition')) {
     }
 }
 
+if (!function_exists('muginSemanticQualityIsConferenceAbstract')) {
+    /**
+     * Port of isConferenceAbstract() in src/utils/conferenceAbstractDetector.js.
+     *
+     * @param array{title?:string,doi?:string,types?:array<int,string>,issue?:string,pages?:string,sourceName?:string} $record
+     */
+    function muginSemanticQualityIsConferenceAbstract(array $record): bool
+    {
+        $title = trim((string) ($record['title'] ?? ''));
+        $doi = strtolower(trim((string) ($record['doi'] ?? '')));
+        $issue = (string) ($record['issue'] ?? '');
+        $pages = (string) ($record['pages'] ?? '');
+        $sourceName = (string) ($record['sourceName'] ?? '');
+        $types = is_array($record['types'] ?? null) ? $record['types'] : [];
+
+        foreach ($types as $type) {
+            $key = strtolower(preg_replace('/[\s_-]+/', '', trim((string) $type)) ?? '');
+            if (in_array($key, ['conferenceabstract', 'meetingabstract', 'congressabstract'], true)) {
+                return true;
+            }
+        }
+        if ($doi !== '' && (strpos($doi, 'meeting-abstract') !== false || strpos($doi, 'meetingabstracts') !== false)) {
+            return true;
+        }
+
+        $abstractIssue = trim($issue) !== '' && (
+            preg_match('/\bsuppl/i', $issue) === 1
+            || preg_match('/\bmeeting\b/i', $issue) === 1
+            || preg_match('/\bcongress\b/i', $issue) === 1
+            || preg_match('/\bconference\b/i', $issue) === 1
+            || preg_match('/\bposter\b/i', $issue) === 1
+        );
+        $abstractSource = preg_match('/\babstracts?\b/i', $sourceName) === 1;
+        $pageInfo = muginSemanticQualityClassifyConferenceAbstractPages($pages);
+        $titleCode = preg_match(
+            '/^(?:[A-Za-z]{1,4}\d{0,4}-\d{1,4}|[A-Za-z]{1,4}-?\d{2,5}|\d{2,4}-[A-Za-z]{1,4})(?=$|[\s:.|])/u',
+            $title
+        ) === 1;
+
+        if ($abstractSource && $pageInfo['short']) {
+            return true;
+        }
+        if ($abstractIssue && $pageInfo['shortS']) {
+            return true;
+        }
+        if ($titleCode && ($abstractIssue || $pageInfo['short'])) {
+            return true;
+        }
+        return false;
+    }
+}
+
+if (!function_exists('muginSemanticQualityClassifyConferenceAbstractPages')) {
+    /**
+     * @return array{short:bool,shortS:bool}
+     */
+    function muginSemanticQualityClassifyConferenceAbstractPages(string $pages): array
+    {
+        $empty = ['short' => false, 'shortS' => false];
+        $text = trim($pages);
+        if ($text === '') {
+            return $empty;
+        }
+        $parts = preg_split('/[\x{002D}\x{2010}\x{2011}\x{2012}\x{2013}\x{2014}\x{2015}\x{2212}]/u', $text) ?: [];
+        $parts = array_values(array_filter(array_map('trim', $parts), static function (string $part): bool {
+            return $part !== '';
+        }));
+        if (count($parts) === 0 || count($parts) > 2) {
+            return $empty;
+        }
+        $first = muginSemanticQualityParseConferenceAbstractPageToken($parts[0]);
+        if ($first === null) {
+            return $empty;
+        }
+        if (count($parts) === 1) {
+            return [
+                'short' => true,
+                'shortS' => $first['prefix'] === 'S' && $first['suffix'] === '',
+            ];
+        }
+        $second = muginSemanticQualityParseConferenceAbstractPageToken($parts[1]);
+        if ($second === null) {
+            return $empty;
+        }
+        if ($second['prefix'] === '' && $first['prefix'] !== '') {
+            $second['prefix'] = $first['prefix'];
+        }
+        if ($first['prefix'] !== $second['prefix'] || $first['suffix'] !== $second['suffix']) {
+            return $empty;
+        }
+        $span = abs($second['number'] - $first['number']);
+        $onePage = $span === 0;
+        $shortS = $first['prefix'] === 'S' && $first['suffix'] === '' && $span <= 1;
+        return ['short' => $onePage || $shortS, 'shortS' => $shortS];
+    }
+}
+
+if (!function_exists('muginSemanticQualityParseConferenceAbstractPageToken')) {
+    /**
+     * @return ?array{prefix:string,number:int,suffix:string}
+     */
+    function muginSemanticQualityParseConferenceAbstractPageToken(string $token): ?array
+    {
+        if (preg_match('/^([A-Za-z]*)(\d+)([A-Za-z]*)$/', trim($token), $match) !== 1) {
+            return null;
+        }
+        return [
+            'prefix' => strtoupper($match[1]),
+            'number' => (int) $match[2],
+            'suffix' => strtoupper($match[3]),
+        ];
+    }
+}
+
+if (!function_exists('muginSemanticQualityConferenceAbstractRecordFromCandidate')) {
+    /**
+     * @param array<string,mixed> $candidate
+     * @return array{title:string,doi:string,types:array<int,string>,issue:string,pages:string,sourceName:string}
+     */
+    function muginSemanticQualityConferenceAbstractRecordFromCandidate(array $candidate): array
+    {
+        $metadata = isset($candidate['metadata']) && is_array($candidate['metadata']) ? $candidate['metadata'] : [];
+        $enriched = isset($candidate['enriched']) && is_array($candidate['enriched']) ? $candidate['enriched'] : [];
+        $sources = [$enriched, $metadata];
+        $types = [];
+        $issue = '';
+        $pages = '';
+        $sourceNames = [];
+        $pushType = static function ($value) use (&$types): void {
+            if (is_array($value)) {
+                foreach ($value as $entry) {
+                    $text = trim((string) $entry);
+                    if ($text !== '') {
+                        $types[] = $text;
+                    }
+                }
+                return;
+            }
+            $text = trim((string) $value);
+            if ($text !== '') {
+                $types[] = $text;
+            }
+        };
+        foreach ($sources as $source) {
+            $pushType($source['workType'] ?? '');
+            $pushType($source['pubType'] ?? '');
+            $pushType($source['publicationTypes'] ?? []);
+            $pushType($source['pubTypes'] ?? []);
+            if ($issue === '') {
+                $issue = trim((string) ($source['issue'] ?? ''));
+            }
+            if ($pages === '') {
+                $pages = trim((string) ($source['pages'] ?? ''));
+            }
+            $sourceName = trim((string) (
+                $source['sourceDisplayName']
+                ?? ($source['venue'] ?? ($source['fulljournalname'] ?? ($source['source'] ?? '')))
+            ));
+            if ($sourceName !== '') {
+                $sourceNames[] = $sourceName;
+            }
+        }
+        $pushType($candidate['pubType'] ?? '');
+        $pushType($candidate['pubtype'] ?? []);
+        return [
+            'title' => trim((string) ($candidate['title'] ?? '')),
+            'doi' => trim((string) ($candidate['doi'] ?? '')),
+            'types' => $types,
+            'issue' => $issue,
+            'pages' => $pages,
+            'sourceName' => implode(' ', $sourceNames),
+        ];
+    }
+}
+
 if (!function_exists('muginSemanticQualityEvaluateRule')) {
     /**
      * Ported from evaluateCandidateSemanticRule() in semanticRuleEngine.js.
@@ -896,6 +1072,11 @@ if (!function_exists('muginSemanticQualityEvaluateRule')) {
             $sourceProviders
         )) > 0;
 
+        $excludeConferenceAbstracts = !empty($rule['excludeConferenceAbstracts']);
+        $isConferenceAbstract = $excludeConferenceAbstracts && muginSemanticQualityIsConferenceAbstract(
+            muginSemanticQualityConferenceAbstractRecordFromCandidate($candidate)
+        );
+
         $metadataConditions = (array) ($rule['metadataFieldConditions'] ?? []);
         $metadataResults = [];
         foreach ($metadataConditions as $condition) {
@@ -930,6 +1111,9 @@ if (!function_exists('muginSemanticQualityEvaluateRule')) {
         if (!empty($excludeProviders)) {
             $negativeChecks[] = !$hasExcludedProvider;
         }
+        if ($excludeConferenceAbstracts) {
+            $negativeChecks[] = !$isConferenceAbstract;
+        }
 
         if (empty($positiveChecks)) {
             $positivePassed = true;
@@ -956,6 +1140,9 @@ if (!function_exists('muginSemanticQualityEvaluateRule')) {
         }
         if ($hasExcludedProvider) {
             $failures[] = 'provider_excluded';
+        }
+        if ($isConferenceAbstract) {
+            $failures[] = 'conference_abstract';
         }
         if (!$matchesMetadataConditions) {
             $failures[] = 'metadata_conditions_failed';
