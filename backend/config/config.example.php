@@ -720,8 +720,8 @@ define('MUGIN_SEMANTIC_LLM_RERANK_CONFIG', [
     'chatTopN' => 25,
     'decisionsTopN' => 25,
     'promoteMinConfidence' => 0.75,
-    'promoteCutoffScore' => 7,
-    // How far a decisions score of 0 or 9 can multiply combinedScore. Clamped to 0.95.
+    'promoteCutoffScore' => 8,
+    // How far a decisions score of 1 or 10 can multiply combinedScore. Clamped to 0.95.
     'decisionScoreWeight' => 0.7,
     'maxOutputTokens' => 400,
     // Cache LLM permutations by request payload so UnifiedSearch and the public

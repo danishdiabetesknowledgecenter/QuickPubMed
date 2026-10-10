@@ -29,7 +29,7 @@
       <p
         v-if="canShowSelectionCheckbox && matchPercentLabel"
         v-tooltip="{
-          content: getString('matchPercentTooltip'),
+          content: matchPercentTooltip,
           distance: 5,
           delay: $helpTextDelay,
         }"
@@ -49,7 +49,7 @@
       <p
         v-if="canShowSelectionCheckbox && matchPercentLabel"
         v-tooltip="{
-          content: getString('matchPercentTooltip'),
+          content: matchPercentTooltip,
           distance: 5,
           delay: $helpTextDelay,
         }"
@@ -1546,6 +1546,10 @@
         type: String,
         default: "dk",
       },
+      sortMethod: {
+        type: String,
+        default: "",
+      },
       hyperLink: {
         type: String,
         default: "",
@@ -1732,6 +1736,12 @@
         const value = Math.round(raw);
         if (value < 0 || value > 100) return "";
         return `${value}%`;
+      },
+      matchPercentTooltip() {
+        const key = this.sortMethod === "best_match"
+          ? "matchPercentTooltipBestMatch"
+          : "matchPercentTooltip";
+        return this.getString(key);
       },
       resultDetailsAbstractSource() {
         return String(this.resultDetailsValue?.abstractSource || "").trim();

@@ -3133,18 +3133,20 @@
           ...payload,
         });
       },
-      startCompactLoading(textKey = "loadingText", hideResults = false) {
+      startCompactLoading(textKey = "loadingText", hideResults = false, keepProcessSteps = false) {
         this.searchLoading = true;
         this.searchError = null;
         this.compactLoadingUi = true;
         this.compactLoadingHideResults = hideResults;
         this.clearLoadingStatusDotInterval();
         this.clearProcessTimingInterval();
-        this.loadingProcessSteps = [];
+        if (!keepProcessSteps) {
+          this.loadingProcessSteps = [];
+        }
         this.searchLoadingStatusText = this.getString(textKey);
         return Date.now();
       },
-      async finishCompactLoading(startedAt = 0) {
+      async finishCompactLoading(startedAt = 0, keepProcessSteps = false) {
         const minimumSpinnerMs = 280;
         const elapsedMs = Math.max(0, Date.now() - Number(startedAt || 0));
         const remainingMs = Math.max(0, minimumSpinnerMs - elapsedMs);
@@ -3152,16 +3154,23 @@
           await new Promise((resolve) => setTimeout(resolve, remainingMs));
         }
         this.searchLoading = false;
+        if (keepProcessSteps) {
+          this.compactLoadingUi = false;
+          this.compactLoadingHideResults = false;
+          this.clearLoadingStatusDotInterval();
+          this.searchLoadingStatusText = "";
+          return;
+        }
         this.clearSearchLoadingStatus();
       },
       // Shared wrapper for local sort/pagination updates so spinner timing stays consistent in one place.
-      async runWithCompactLoading(textKey = "loadingText", hideResults = false, callback = null) {
-        const compactLoadingStartedAt = this.startCompactLoading(textKey, hideResults);
+      async runWithCompactLoading(textKey = "loadingText", hideResults = false, callback = null, keepProcessSteps = false) {
+        const compactLoadingStartedAt = this.startCompactLoading(textKey, hideResults, keepProcessSteps);
         try {
           await this.waitForCompactLoadingPaint();
           return await callback?.();
         } finally {
-          await this.finishCompactLoading(compactLoadingStartedAt);
+          await this.finishCompactLoading(compactLoadingStartedAt, keepProcessSteps);
         }
       },
       async waitForCompactLoadingPaint() {
@@ -10301,11 +10310,63 @@
       toggleAdvancedString() {
         this.advancedString = !this.advancedString;
       },
+      async resortStoredUnifiedResults() {
+        const resultSetId = String(this.resultSetId || "").trim();
+        if (!resultSetId) {
+          return false;
+        }
+        const payload = this.buildUnifiedSearchRequestPayload(1, "committed");
+        payload.page = {
+          number: 1,
+          size: this.pageSize,
+        };
+        payload.resultSetId = resultSetId;
+        payload.reuseResultSet = true;
+        payload.responseOptions = {
+          ...(payload.responseOptions || {}),
+          stream: false,
+        };
+        try {
+          const response = await this.callUnifiedSearchEndpoint(payload);
+          if (response?.resultSetExpired === true) {
+            return false;
+          }
+          const echoedResultSetId = String(response?.resultSetId || "").trim();
+          if (echoedResultSetId) {
+            this.resultSetId = echoedResultSetId;
+          }
+          this.count = Number(response.total || 0);
+          this.searchresult = this.mapUnifiedSearchResponseResults(response.results);
+          const preSelectedEntries = await this.searchPreselectedPmidai();
+          if (preSelectedEntries && preSelectedEntries.length > 0) {
+            const uniquePreselected = this.mergeUniqueEntries(preSelectedEntries);
+            this.searchresult = [...this.searchresult, ...uniquePreselected];
+          }
+          return true;
+        } catch (err) {
+          console.error(err);
+          return false;
+        }
+      },
       async newSortMethod(newVal) {
-        this.sort = newVal && typeof newVal === "object" ? { ...newVal } : newVal;
+        const nextSort = newVal && typeof newVal === "object" ? { ...newVal } : newVal;
+        const nextMethod = String(nextSort?.method || "");
+        this.sort = nextSort;
         this.page = 0;
         this.setUrl();
-        if (await this.applyLocalSemanticSort()) {
+        const storedResultSetId = String(this.resultSetId || "").trim();
+        if (storedResultSetId && (nextMethod === "relevance" || nextMethod === "best_match")) {
+          let reused = false;
+          await this.runWithCompactLoading("sortResultsLoadingText", true, async () => {
+            reused = await this.resortStoredUnifiedResults();
+          }, true);
+          if (reused) {
+            return;
+          }
+        }
+        // Best match is ordered by the PHP orchestrator, the same path as the
+        // public API. The local shortcut only hydrates the visible page.
+        if (this.sort?.method !== "best_match" && (await this.applyLocalSemanticSort())) {
           return;
         }
         this.count = 0;

@@ -350,6 +350,7 @@ if (!function_exists('muginPublicSearchBuildRequestFromFlatParams')) {
             'ai', 'translation', 'focus', 'sort', 'page', 'pagesize', 'pageSize',
             'limit', 'checklimits', 'pmid', 'selected', 'domain', 'lang', 'stream',
             'includeabstracts', 'includeprocessdetails', 'nocache',
+            'resultsetid', 'reuseresultset',
             'qpubmed', 'qsemanticscholar', 'qopenalex', 'qelicit',
         ], true);
 
@@ -512,6 +513,18 @@ if (!function_exists('muginPublicSearchBuildRequestFromFlatParams')) {
                 $params['includeprocessdetails'],
                 false
             );
+        }
+        if (array_key_exists('resultsetid', $params)) {
+            $resultSetId = trim((string) $params['resultsetid']);
+            if ($resultSetId !== '') {
+                if (!muginPublicSearchIsValidResultSetId($resultSetId)) {
+                    throw new InvalidArgumentException('resultSetId is invalid');
+                }
+                $request['resultSetId'] = $resultSetId;
+            }
+        }
+        if (array_key_exists('reuseresultset', $params)) {
+            $request['reuseResultSet'] = muginPublicSearchBoolValue($params['reuseresultset'], false);
         }
         if (array_key_exists('nocache', $params)) {
             // Request-scoped bypass of search-response + LLM final-rerank caches.

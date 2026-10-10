@@ -390,6 +390,12 @@ if (!function_exists('muginPublicSearchBuildPipelineCacheKey')) {
         $forKey['_llmProvider'] = function_exists('muginGetLlmProvider') ? muginGetLlmProvider() : 'openai';
         $forKey['_pubmedTranslationGuard'] = 1;
         $forKey['_semanticQueryGuard'] = 1;
+        if (
+            function_exists('muginPublicSearchIsBestMatchSort')
+            && muginPublicSearchIsBestMatchSort((string) ($forKey['sort']['method'] ?? ''))
+        ) {
+            $forKey['_bestMatchPercentScale'] = 3;
+        }
         return 'pipeline:' . sha1(muginPublicSearchSafeJsonEncode($forKey));
     }
 }
@@ -1708,10 +1714,24 @@ if (!function_exists('muginPublicSearchNormalizeSortMethod')) {
     function muginPublicSearchNormalizeSortMethod($value): string
     {
         $normalized = trim((string) $value);
-        if (in_array($normalized, ['relevance', 'date_desc', 'date_asc'], true)) {
+        if (in_array($normalized, ['relevance', 'date_desc', 'date_asc', 'best_match'], true)) {
             return $normalized;
         }
         return 'relevance';
+    }
+}
+
+if (!function_exists('muginPublicSearchIsBestMatchSort')) {
+    function muginPublicSearchIsBestMatchSort(string $sortMethod): bool
+    {
+        return $sortMethod === 'best_match';
+    }
+}
+
+if (!function_exists('muginPublicSearchBestMatchWindowSize')) {
+    function muginPublicSearchBestMatchWindowSize(): int
+    {
+        return 100;
     }
 }
 
@@ -2190,6 +2210,7 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
             'cachedFreetextQueries',
             'standardString',
             'resultSetId',
+            'reuseResultSet',
         ];
         $unexpected = array_diff(array_keys($payload), $allowedTopLevel);
         if (!empty($unexpected)) {
@@ -2725,6 +2746,9 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
                 }
                 $request['resultSetId'] = $resultSetId;
             }
+        }
+        if (array_key_exists('reuseResultSet', $payload)) {
+            $request['reuseResultSet'] = muginPublicSearchBoolValue($payload['reuseResultSet'], false);
         }
 
         return muginPublicSearchApplyQueryResponseOptionOverrides($request);
@@ -12958,7 +12982,12 @@ if (!function_exists('muginPublicSearchShouldApplySemanticLlmFinalRerank')) {
         if (((string) ($request['translation']['mode'] ?? 'auto')) !== 'auto') {
             return false;
         }
-        if (((int) ($request['page']['number'] ?? 1)) !== 1) {
+        if (!empty($request['_reuseStoredOrder'])) {
+            return false;
+        }
+        if (((int) ($request['page']['number'] ?? 1)) !== 1
+            && empty($request['_bestMatchScoreWindow'])
+        ) {
             return false;
         }
         if (muginPublicSearchShouldUseSemanticDateOrdering((string) ($request['sort']['method'] ?? 'relevance'))) {
@@ -12982,6 +13011,16 @@ if (!function_exists('muginPublicSearchFinalRerankCandidateWindow')) {
     function muginPublicSearchFinalRerankCandidateWindow(array $request, int $pageSize, int $pageOffset): int
     {
         $pageSize = max(1, $pageSize);
+        $sortMethod = (string) ($request['sort']['method'] ?? 'relevance');
+        if (muginPublicSearchIsBestMatchSort($sortMethod)) {
+            if ($pageOffset !== 0 && empty($request['_bestMatchScoreWindow'])) {
+                return $pageSize;
+            }
+            if (!muginPublicSearchShouldApplySemanticLlmFinalRerank($request, [[], []])) {
+                return $pageSize;
+            }
+            return max($pageSize, muginPublicSearchBestMatchWindowSize());
+        }
         if ($pageOffset !== 0) {
             return $pageSize;
         }
@@ -13302,7 +13341,12 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         if (((string) ($request['translation']['mode'] ?? 'auto')) !== 'auto') {
             return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'translation_disabled'])];
         }
-        if (((int) ($request['page']['number'] ?? 1)) !== 1) {
+        if (!empty($request['_reuseStoredOrder'])) {
+            return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'stored_order'])];
+        }
+        if (((int) ($request['page']['number'] ?? 1)) !== 1
+            && empty($request['_bestMatchScoreWindow'])
+        ) {
             return ['results' => $results, 'detail' => array_merge($baseDetail, ['skippedReason' => 'not_first_page'])];
         }
         if (muginPublicSearchShouldUseSemanticDateOrdering((string) ($request['sort']['method'] ?? 'relevance'))) {
@@ -13323,7 +13367,10 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         }
         $retrievalQuery = trim((string) ($resolvedQueries['semanticIntent'] ?? ($resolvedQueries['pubmedQuery'] ?? ($request['query']['text'] ?? ''))));
 
-        $topN = min($config['topN'], count($results));
+        $topN = min((int) $config['topN'], count($results));
+        if (muginPublicSearchIsBestMatchSort((string) ($request['sort']['method'] ?? ''))) {
+            $topN = min(muginPublicSearchBestMatchWindowSize(), count($results));
+        }
         $topResults = array_slice($results, 0, $topN);
         $pmidsToHydrate = [];
         foreach ($topResults as $entry) {
@@ -13499,6 +13546,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
         // 90%: score / (score + score * 0.10/0.90) = 0.90. Higher scores approach 100.
         $referenceScore = $pivotScore * muginFinalRerankDecisionBoostFactor(7.5, 1.0, $decisionWeight);
         $matchPivot = $referenceScore * 0.10 / 0.90;
+        $bestMatchSort = muginPublicSearchIsBestMatchSort((string) ($request['sort']['method'] ?? ''));
         $applyRawScores = static function (array $rawById, array $confidenceById = [], array $scoreExactById = []) use (
             $requestCandidates,
             $deferredEntries,
@@ -13508,7 +13556,8 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             $expectedIds,
             $config,
             $baseById,
-            $matchPivot
+            $matchPivot,
+            $bestMatchSort
         ): array {
             $cappedById = [];
             $relevanceRawById = [];
@@ -13533,6 +13582,34 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
             }
             $weight = (float) ($config['decisionScoreWeight'] ?? 0.7);
             $ordered = [];
+            if ($bestMatchSort) {
+                $idsInOrder = [];
+                $priorById = [];
+                $displayById = [];
+                foreach ($requestCandidates as $index => $candidate) {
+                    $candidateId = $candidate['id'];
+                    $idsInOrder[] = $candidateId;
+                    $priorById[$candidateId] = $index;
+                    if (!array_key_exists($candidateId, $cappedById)) {
+                        continue;
+                    }
+                    $displayScore = (float) $cappedById[$candidateId];
+                    if (array_key_exists($candidateId, $scoreExactById) && is_numeric($scoreExactById[$candidateId])) {
+                        $displayScore = (float) $scoreExactById[$candidateId];
+                    }
+                    $displayById[$candidateId] = muginFinalRerankBestMatchDisplayScore(
+                        $displayScore,
+                        trim((string) $candidate['abstract']) !== ''
+                    );
+                }
+                foreach (muginFinalRerankOrderByDecisionScore($idsInOrder, $displayById, $retractedById) as $orderedId) {
+                    $ordered[] = [
+                        'id' => $orderedId,
+                        'prior' => $priorById[$orderedId] ?? 0,
+                        'sort' => array_key_exists($orderedId, $displayById) ? (float) $displayById[$orderedId] : 0.0,
+                    ];
+                }
+            } else {
             foreach ($requestCandidates as $index => $candidate) {
                 $orderedId = $candidate['id'];
                 $hasScore = array_key_exists($orderedId, $cappedById);
@@ -13563,6 +13640,7 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 $scoreCompare = $right['sort'] <=> $left['sort'];
                 return $scoreCompare !== 0 ? $scoreCompare : ($left['prior'] <=> $right['prior']);
             });
+            }
             $candidateMap = [];
             $priorRankById = [];
             foreach ($requestCandidates as $index => $candidate) {
@@ -13579,9 +13657,15 @@ if (!function_exists('muginPublicSearchMaybeApplySemanticLlmFinalRerank')) {
                 $candidate = $candidateMap[$orderedId];
                 $entry = $candidate['entry'];
                 $hasScore = array_key_exists($orderedId, $cappedById);
-                $matchPercent = ($matchPivot > 0 && $orderedRow['sort'] > 0)
-                    ? max(0, min(100, (int) round(100 * $orderedRow['sort'] / ($orderedRow['sort'] + $matchPivot))))
-                    : 0;
+                if ($bestMatchSort) {
+                    $matchPercent = $hasScore
+                        ? muginFinalRerankDecisionScorePercent((float) $orderedRow['sort'])
+                        : 0;
+                } else {
+                    $matchPercent = ($matchPivot > 0 && $orderedRow['sort'] > 0)
+                        ? max(0, min(100, (int) round(100 * $orderedRow['sort'] / ($orderedRow['sort'] + $matchPivot))))
+                        : 0;
+                }
                 $ranking = isset($entry['ranking']) && is_array($entry['ranking']) ? $entry['ranking'] : [];
                 if ($hasScore) {
                     $ranking['llmScore'] = $cappedById[$orderedId];
@@ -14943,6 +15027,12 @@ if (!function_exists('muginPublicSearchRunSearch')) {
         $requestForCacheKey['_topicSignalVersion'] = defined('MUGIN_TOPIC_SIGNAL_VERSION')
             ? MUGIN_TOPIC_SIGNAL_VERSION
             : '2026-08-11';
+        if (muginPublicSearchIsBestMatchSort((string) ($requestForCacheKey['sort']['method'] ?? ''))) {
+            $requestForCacheKey['_bestMatchPercentScale'] = 3;
+        }
+        if (($requestForCacheKey['reuseResultSet'] ?? false) === true) {
+            $requestForCacheKey['_storedMatchPercent'] = 1;
+        }
         $searchCacheKey = 'request:' . muginPublicSearchSafeJsonEncode($requestForCacheKey);
         if ($searchCacheTtl > 0 && !$noCache) {
             $cacheEntry = muginPublicSearchReadCacheValue('search-response', $searchCacheKey);
@@ -14970,6 +15060,8 @@ if (!function_exists('muginPublicSearchRunSearch')) {
         if (array_key_exists('offset', (array) ($request['page'] ?? []))) {
             $pageOffset = max(0, (int) $request['page']['offset']);
         }
+        $bestMatchOrderApplied = false;
+        $bestMatchResultRefs = [];
         $pipelineCacheKey = muginPublicSearchBuildPipelineCacheKey($request);
         // Keep pipeline entries longer than short search-response TTL so users can
         // read page 1 and still hit the fast path for "Indlæs de næste".
@@ -14981,9 +15073,18 @@ if (!function_exists('muginPublicSearchRunSearch')) {
         $resultSetStoreTtl = max($pipelineCacheTtl, 1800);
         $responseResultSetId = $pipelineCacheKey;
         $requestedResultSetId = trim((string) ($request['resultSetId'] ?? ''));
-        // An explicit stored-list id is only a continuation. Page 1 with no
-        // offset still runs the full search, even if a stale id is present.
-        if ($requestedResultSetId !== '' && ($pageNumber > 1 || $pageOffset > 0)) {
+        $reuseStoredList = ($request['reuseResultSet'] ?? false) === true
+            && $requestedResultSetId !== ''
+            && $pageNumber === 1
+            && $pageOffset === 0
+            && (
+                $sortMethod === 'relevance'
+                || muginPublicSearchIsBestMatchSort($sortMethod)
+            );
+        // An explicit stored-list id is a continuation. Page 1 still runs the
+        // full search, unless the caller asks to reuse that list for relevance
+        // or best match.
+        if ($requestedResultSetId !== '' && ($pageNumber > 1 || $pageOffset > 0 || $reuseStoredList)) {
             $storedPipeline = muginPublicSearchReadStoredPipeline($requestedResultSetId);
             if ($storedPipeline === null) {
                 return muginPublicSearchBuildExpiredResultSetResponse($request);
@@ -15005,9 +15106,30 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                 $diagnostics['cache'] = ['hit' => false];
                 $diagnostics['pipelineCache'] = ['hit' => true];
             }
-            $totalCount = (int) ($storedPipeline['totalCount'] ?? count($resultRefs));
-            $responseResultSetId = $requestedResultSetId;
-            goto mugin_public_search_hydrate_page;
+                $totalCount = (int) ($storedPipeline['totalCount'] ?? count($resultRefs));
+                $responseResultSetId = $requestedResultSetId;
+                $bestMatchOrderApplied = !empty($storedPipeline['bestMatchOrderApplied']);
+                $bestMatchResultRefs = array_values((array) ($storedPipeline['bestMatchResultRefs'] ?? []));
+                $storedRelevanceHasPercent = false;
+                foreach (array_slice($resultRefs, $pageOffset, max(1, $pageSize)) as $storedRef) {
+                    if (is_array($storedRef) && is_numeric($storedRef['matchPercent'] ?? null)) {
+                        $storedRelevanceHasPercent = true;
+                        break;
+                    }
+                }
+                if (
+                    $reuseStoredList
+                    && (
+                        ($sortMethod === 'relevance' && $storedRelevanceHasPercent)
+                        || (
+                            muginPublicSearchIsBestMatchSort($sortMethod)
+                            && $bestMatchOrderApplied
+                        )
+                    )
+                ) {
+                    $request['_reuseStoredOrder'] = true;
+                }
+                goto mugin_public_search_hydrate_page;
         }
         // Continuation requests (page 2+ or explicit offset>0 for page-size changes)
         // must not re-run intent/sources/rerank — only hydrate the missing slice.
@@ -15041,6 +15163,8 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     $diagnostics['pipelineCache'] = ['hit' => true];
                 }
                 $totalCount = (int) ($cachedPipeline['totalCount'] ?? count($resultRefs));
+                $bestMatchOrderApplied = !empty($cachedPipeline['bestMatchOrderApplied']);
+                $bestMatchResultRefs = array_values((array) ($cachedPipeline['bestMatchResultRefs'] ?? []));
                 goto mugin_public_search_hydrate_page;
             }
         }
@@ -15159,7 +15283,9 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             ]);
             $pubmedFetchStartedAt = microtime(true);
             // NCBI esearch accepts relevance / pub_date (not app-level date_desc/date_asc).
-            $nlmSort = $sortMethod === 'relevance' ? 'relevance' : 'pub_date';
+            $nlmSort = ($sortMethod === 'relevance' || muginPublicSearchIsBestMatchSort($sortMethod))
+                ? 'relevance'
+                : 'pub_date';
             $storedWindow = ($pageOffset > 0 && !$noCache)
                 ? muginPublicSearchReadFinalRerankWindow($pipelineCacheKey)
                 : null;
@@ -15167,14 +15293,18 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             if (is_array($storedWindow) && $pageOffset < count($storedWindow['pmids'])) {
                 $pmidsFromWindow = array_slice($storedWindow['pmids'], $pageOffset, $pageSize);
             }
+            $bestMatchNeedsWindow = muginPublicSearchIsBestMatchSort($sortMethod) && !is_array($storedWindow);
+            if ($bestMatchNeedsWindow) {
+                $request['_bestMatchScoreWindow'] = true;
+            }
             $pubmedRetmax = count($pmidsFromWindow) === $pageSize
                 ? $pageSize
-                : ($pageOffset === 0
-                    ? muginPublicSearchFinalRerankCandidateWindow($request, $pageSize, $pageOffset)
+                : ($pageOffset === 0 || $bestMatchNeedsWindow
+                    ? muginPublicSearchFinalRerankCandidateWindow($request, $pageSize, $bestMatchNeedsWindow ? 0 : $pageOffset)
                     : max(0, $pageSize - count($pmidsFromWindow)));
             $pubmedRetstart = count($pmidsFromWindow) === $pageSize
                 ? $pageOffset
-                : ($pmidsFromWindow !== [] ? count($storedWindow['pmids']) : $pageOffset);
+                : ($pmidsFromWindow !== [] ? count($storedWindow['pmids']) : ($bestMatchNeedsWindow ? 0 : $pageOffset));
             if (count($pmidsFromWindow) === $pageSize) {
                 $esearch = [
                     'count' => (int) $storedWindow['totalCount'],
@@ -15306,7 +15436,7 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                 $results = $finalRerankResult['results'];
                 $diagnostics['finalRerank'] = $finalRerankResult['detail'] ?? [];
                 if (
-                    $pageOffset === 0
+                    ($pageOffset === 0 || !empty($request['_bestMatchScoreWindow']))
                     && ($diagnostics['finalRerank']['applied'] ?? false) === true
                     && !$noCache
                     && $resultSetStoreTtl > 0
@@ -15332,7 +15462,9 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                         ], $resultSetStoreTtl);
                     }
                 }
-                if ($pageOffset === 0 && count($results) > $pageSize) {
+                if (!empty($request['_bestMatchScoreWindow']) && count($results) > $pageSize) {
+                    $results = array_slice($results, $pageOffset, $pageSize);
+                } elseif ($pageOffset === 0 && count($results) > $pageSize) {
                     $results = array_slice($results, 0, $pageSize);
                 }
                 if ($collector !== null) {
@@ -15830,6 +15962,8 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                     'warnings' => array_values($warnings),
                     'diagnostics' => $diagnostics,
                     'totalCount' => $totalCount,
+                    'bestMatchOrderApplied' => false,
+                    'bestMatchResultRefs' => [],
                 ],
                 $resultSetStoreTtl
             );
@@ -15846,13 +15980,21 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             }
         }
 
+        $refsForPage = $resultRefs;
+        if (muginPublicSearchIsBestMatchSort($sortMethod) && $bestMatchOrderApplied && $bestMatchResultRefs !== []) {
+            $refsForPage = $bestMatchResultRefs;
+        }
         $refsToHydrate = muginPublicSearchShouldUseSemanticDateOrdering($sortMethod)
-            ? $resultRefs
+            ? $refsForPage
             : array_slice(
-                $resultRefs,
+                $refsForPage,
                 $pageOffset,
                 muginPublicSearchFinalRerankCandidateWindow($request, $pageSize, $pageOffset)
             );
+        if (muginPublicSearchIsBestMatchSort($sortMethod) && !$bestMatchOrderApplied) {
+            $refsToHydrate = array_slice($resultRefs, 0, muginPublicSearchBestMatchWindowSize());
+            $request['_bestMatchScoreWindow'] = true;
+        }
 
         $pmidsToHydrate = [];
         $doiRefs = [];
@@ -16018,18 +16160,27 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             $results = $finalRerankResult['results'];
             $diagnostics['finalRerank'] = $finalRerankResult['detail'] ?? [];
             if (
-                $pageOffset === 0
+                ($pageOffset === 0 || !empty($request['_bestMatchScoreWindow']))
                 && ($diagnostics['finalRerank']['applied'] ?? false) === true
-                && count($refsToHydrate) > $pageSize
             ) {
-                $resultRefs = muginPublicSearchReorderResultRefsByFinalRerank($resultRefs, $refsToHydrate, $results);
+                $reorderedRefs = muginPublicSearchReorderResultRefsByFinalRerank($resultRefs, $refsToHydrate, $results);
+                if (muginPublicSearchIsBestMatchSort($sortMethod)) {
+                    $bestMatchResultRefs = $reorderedRefs;
+                } else {
+                    $resultRefs = $reorderedRefs;
+                }
                 if ($resultSetStoreTtl > 0 && !$noCache) {
+                    $pipelineStoreKey = (
+                        ($request['reuseResultSet'] ?? false) === true
+                        && $requestedResultSetId !== ''
+                    ) ? $requestedResultSetId : $pipelineCacheKey;
                     muginPublicSearchWriteCacheValue(
                         'search-pipeline',
-                        $pipelineCacheKey,
+                        $pipelineStoreKey,
                         [
                             'resolvedQueries' => muginPublicSearchStripResolvedQueriesForPipelineCache($resolvedQueries),
                             'resultRefs' => array_values($resultRefs),
+                            'bestMatchResultRefs' => array_values($bestMatchResultRefs),
                             'orderedCandidates' => array_values($orderedCandidates),
                             'hybridOrdering' => [
                                 'pmids' => array_values((array) ($hybridOrdering['pmids'] ?? [])),
@@ -16038,12 +16189,15 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                             'warnings' => array_values($warnings),
                             'diagnostics' => $diagnostics,
                             'totalCount' => $totalCount,
+                            'bestMatchOrderApplied' => muginPublicSearchIsBestMatchSort($sortMethod),
                         ],
                         $resultSetStoreTtl
                     );
                 }
             }
-            if ($pageOffset === 0 && count($results) > $pageSize) {
+            if (!empty($request['_bestMatchScoreWindow']) && count($results) > $pageSize) {
+                $results = array_slice($results, $pageOffset, $pageSize);
+            } elseif ($pageOffset === 0 && count($results) > $pageSize) {
                 $results = array_slice($results, 0, $pageSize);
             }
             if ($collector !== null) {
@@ -16060,11 +16214,11 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             }
         }
         if (
-            $pageOffset === 0
-            && count($results) > $pageSize
+            count($results) > $pageSize
             && !muginPublicSearchShouldUseSemanticDateOrdering($sortMethod)
+            && ($pageOffset === 0 || !empty($request['_bestMatchScoreWindow']))
         ) {
-            $results = array_slice($results, 0, $pageSize);
+            $results = array_slice($results, $pageOffset, $pageSize);
         }
         foreach ($results as $index => &$result) {
             $result['rank'] = $pageOffset + $index + 1;

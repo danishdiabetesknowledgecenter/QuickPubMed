@@ -20,6 +20,14 @@ export const order = [
   },
   {
     id: "O02",
+    method: "best_match",
+    translations: {
+      dk: "Sorter efter bedste match",
+      en: "Sort by best match",
+    },
+  },
+  {
+    id: "O03",
     method: "date_desc",
     translations: {
       dk: "Vis nyeste først",
@@ -27,7 +35,7 @@ export const order = [
     },
   },
   {
-    id: "O03",
+    id: "O04",
     method: "date_asc",
     translations: {
       dk: "Vis ældste først",

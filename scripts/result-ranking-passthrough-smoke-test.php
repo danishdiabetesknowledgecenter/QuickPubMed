@@ -300,7 +300,7 @@ $rankOpenAlex = (2.0 * 100 * 60) / 61;
 $expectedPivot = 10 + $rankOpenAlex + (25 * 5);
 $actualPivot = muginSemanticQualitySaturationPivotScore($ceilingConfig, ['pubmed', 'openAlex']);
 assertTrue(abs($actualPivot - $expectedPivot) < 0.001, 'the saturation pivot uses the strongest source and only the strongest bonus');
-$reference = $actualPivot * muginFinalRerankDecisionBoostFactor(7.5, 1, 0.7);
+$reference = $actualPivot * muginFinalRerankDecisionBoostFactor(8.5, 1, 0.7);
 $saturationPivot = $reference * 0.10 / 0.90;
 $saturated = (int) round(100 * $reference / ($reference + $saturationPivot));
 assertTrue($saturated === 90, 'the reference article is 90 percent');

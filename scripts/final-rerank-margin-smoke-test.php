@@ -241,9 +241,11 @@ assertTrue(
 $criteria = muginFinalRerankDecisionCriteria();
 assertTrue(strpos(implode("\n", $criteria), 'population') === false, 'the decision scale does not mention population');
 assertTrue(strpos(implode("\n", $criteria), 'intervention') === false, 'the decision scale does not mention intervention');
+assertTrue($criteria[0] === 'different subject', 'step 0 is a different subject');
 assertTrue($criteria[3] === 'same subject, but a different question', 'step 3 is a different question about the same subject');
 assertTrue($criteria[6] === 'same question, answered only in part', 'step 6 is a partial answer');
 assertTrue($criteria[7] === 'answers the question', 'step 7 is the first full answer');
+assertTrue($criteria[9] === 'directly answers every part of the question', 'step 9 is a complete answer');
 $evidenceInstructions = muginFinalRerankDecisionInstructions(
     'hvad virker mod svær astma',
     'severe asthma',
@@ -279,9 +281,38 @@ assertTrue(strpos($bibliographyText, 'Pages:') === false, 'an empty page field i
 assertTrue(strpos(muginFinalRerankArticleInputText('A title', '', []), 'Issue:') === false, 'bibliography lines are omitted when no bibliographic data is sent');
 $decisionInstructions = muginFinalRerankDecisionInstructions('what works', 'diabetes', ['Scientific article']);
 assertTrue(strpos($decisionInstructions, 'bibliographic lines') !== false, 'decisions instructions tell the model to read bibliographic lines');
+$bestMatchOrder = muginFinalRerankOrderByDecisionScore(
+    ['a', 'b', 'c', 'd', 'e'],
+    ['a' => 2, 'b' => 9, 'c' => 9, 'e' => 9],
+    ['e' => true]
+);
+assertTrue($bestMatchOrder === ['b', 'c', 'a', 'd', 'e'], 'best match sorts by score, keeps ties, and puts unscored then retracted last');
+$exactOrder = muginFinalRerankOrderByDecisionScore(
+    ['a', 'b', 'c', 'd'],
+    ['a' => 6.75, 'b' => 7.29, 'c' => 7.2, 'd' => 7.38]
+);
+assertTrue($exactOrder === ['d', 'b', 'c', 'a'], 'best match puts the highest returned score first');
+assertTrue(muginFinalRerankDecisionScorePercent(7.38) === 82, 'returned score 7.38 is 82 percent');
+assertTrue(muginFinalRerankDecisionScorePercent(6.75) === 75, 'returned score 6.75 is 75 percent');
+assertTrue(muginFinalRerankDecisionScorePercent(9) === 100, 'best match score 9 is 100 percent');
+assertTrue(muginFinalRerankDecisionScorePercent(8) === 89, 'best match score 8 is 89 percent');
+assertTrue(muginFinalRerankDecisionScorePercent(5.31) === 59, 'best match uses the returned score 5.31 as 59 percent');
+assertTrue(muginFinalRerankDecisionScorePercent(6) === 67, 'best match score 6 is 67 percent');
+assertTrue(muginFinalRerankDecisionScorePercent(0) === 0, 'best match score 0 is 0 percent');
+assertTrue(muginFinalRerankBestMatchDisplayScore(8.4, false) === 6.0, 'an empty abstract caps the returned score at 6');
+assertTrue(muginFinalRerankBestMatchDisplayScore(5.31, true) === 5.31, 'a returned score with an abstract is kept');
+$relevanceOrder = muginFinalRerankOrderByRelevanceMargin(
+    ['a', 'b'],
+    ['a' => 8, 'b' => 9],
+    [],
+    2
+);
+assertTrue($relevanceOrder === ['a', 'b'], 'relevance margin still keeps a one-point lead in place');
 $systemLines = implode("\n", muginFinalRerankSystemPromptLines());
 assertTrue(strpos($systemLines, 'When selectedLimits are present') !== false, 'the chat prompt explains selected limits');
 assertTrue(strpos($systemLines, 'from 0 to 9') !== false, 'the chat prompt asks for a score from 0 to 9');
+assertTrue(strpos($systemLines, '0 = different subject') !== false, 'the chat scale starts at 0');
+assertTrue(strpos($systemLines, '9 = directly answers every part of the question') !== false, 'the chat scale ends at 9');
 assertTrue(strpos($systemLines, 'must not score above 3') !== false, 'the chat prompt caps a filter mismatch at 3');
 assertTrue(strpos($systemLines, 'same question, answered only in part') !== false, 'the chat prompt uses the partial-answer anchor');
 foreach (muginFinalRerankDecisionCriteria() as $criterion) {

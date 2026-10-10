@@ -2461,6 +2461,75 @@ function muginFinalRerankNormalizeRawScoreMap(array $rawById, array $expectedIds
 }
 
 /**
+ * Best-match order: highest returned score first. Ties keep the retrieval order.
+ * Unscored ids follow the scored ones. Retracted ids follow every other id.
+ *
+ * @param array<int,string> $idsInOrder
+ * @param array<string,float|int> $scoreById
+ * @param array<string,bool> $retractedById
+ * @return array<int,string>
+ */
+function muginFinalRerankOrderByDecisionScore(
+    array $idsInOrder,
+    array $scoreById,
+    array $retractedById = []
+): array {
+    $rows = [];
+    foreach (array_values($idsInOrder) as $index => $id) {
+        $hasScore = array_key_exists($id, $scoreById);
+        $rows[] = [
+            'id' => (string) $id,
+            'index' => $index,
+            'retracted' => !empty($retractedById[$id]),
+            'hasScore' => $hasScore,
+            'score' => $hasScore ? (float) $scoreById[$id] : 0.0,
+        ];
+    }
+    usort($rows, static function (array $left, array $right): int {
+        if ($left['retracted'] !== $right['retracted']) {
+            return $left['retracted'] <=> $right['retracted'];
+        }
+        if ($left['hasScore'] !== $right['hasScore']) {
+            return $right['hasScore'] <=> $left['hasScore'];
+        }
+        if ($left['hasScore'] && $left['score'] !== $right['score']) {
+            return $right['score'] <=> $left['score'];
+        }
+        return $left['index'] <=> $right['index'];
+    });
+    $ordered = [];
+    foreach ($rows as $row) {
+        $ordered[] = $row['id'];
+    }
+    return $ordered;
+}
+
+/**
+ * Best match shows the returned 0-9 decisions score as a percent. 9 is 100.
+ * The value is the model's exact score, such as 5.31, not the rounded step.
+ */
+function muginFinalRerankDecisionScorePercent(float $score): int
+{
+    if ($score <= 0) {
+        return 0;
+    }
+    return (int) round(100 * min($score, 9.0) / 9.0);
+}
+
+/**
+ * Empty abstracts stay at the same cap as the rounded score.
+ */
+function muginFinalRerankBestMatchDisplayScore(float $score, bool $hasAbstract): float
+{
+    $score = max(0.0, min(9.0, $score));
+    $cap = (float) muginFinalRerankMissingAbstractCap();
+    if (!$hasAbstract && $score > $cap) {
+        return $cap;
+    }
+    return $score;
+}
+
+/**
  * Bubble an id upward only while its capped score leads the neighbor by at
  * least $minGap and the moving id is not retracted. A gap of 0 or 1 stays put.
  * Pinned ids stay where they are and cannot be passed. Scored ids reorder
@@ -2818,7 +2887,7 @@ function muginFinalRerankBuildDecisionRequest(
 }
 
 /**
- * @return array{score:int,confidence:?float}|null
+ * @return array{score:int,scoreExact:float,confidence:?float}|null
  */
 function muginFinalRerankParseDecisionAnswer(string $text): ?array
 {
