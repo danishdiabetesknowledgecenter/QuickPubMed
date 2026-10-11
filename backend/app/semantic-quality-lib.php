@@ -1926,6 +1926,8 @@ if (!function_exists('muginSemanticQualityCreateEnrichedRecord')) {
             'venue' => '',
             'sourceType' => '',
             'workType' => '',
+            'journalQuartile' => null,
+            'fullTextUrl' => '',
         ];
     }
 }
@@ -2138,6 +2140,17 @@ if (!function_exists('muginSemanticQualityMergeEnrichedFromCandidate')) {
         $journalId = muginSemanticQualityNormalizeString($metadata['journalSourceId'] ?? '');
         if ($journalId !== '' && $enriched['journalSourceId'] === '') {
             $enriched['journalSourceId'] = $journalId;
+        }
+
+        $quartile = muginSemanticQualityToFiniteInt($metadata['journalQuartile'] ?? null);
+        if ($quartile !== null && $quartile >= 1 && $quartile <= 4) {
+            if ($enriched['journalQuartile'] === null || $quartile < $enriched['journalQuartile']) {
+                $enriched['journalQuartile'] = $quartile;
+            }
+        }
+        $fullTextUrl = muginSemanticQualityNormalizeString($metadata['fullTextUrl'] ?? '');
+        if ($fullTextUrl !== '' && $enriched['fullTextUrl'] === '') {
+            $enriched['fullTextUrl'] = $fullTextUrl;
         }
 
         $authorIds = is_array($metadata['authorIds'] ?? null) ? $metadata['authorIds'] : [];
@@ -2963,14 +2976,25 @@ if (!function_exists('muginSemanticQualityComputeAuthorityMultiplier')) {
         }
         $authorHIndex = muginSemanticQualityToFiniteInt($enriched['authorityAuthors']['maxHIndex'] ?? null);
         $journalMean = muginSemanticQualityToFiniteNumber($enriched['authorityJournal']['meanCitedness'] ?? null);
-        if ($authorHIndex === null && $journalMean === null) {
+        $quartile = muginSemanticQualityToFiniteInt($enriched['journalQuartile'] ?? null);
+        $quartileFactor = 0.0;
+        if ($journalMean === null && $quartile === 1) {
+            $quartileFactor = 0.02;
+        } elseif ($journalMean === null && $quartile === 2) {
+            $quartileFactor = 0.01;
+        }
+        if ($authorHIndex === null && $journalMean === null && $quartileFactor === 0.0) {
             return ['multiplier' => 1.0, 'components' => []];
         }
         $authorFactor = $authorHIndex !== null ? (muginSemanticQualityLog1p(max(0, $authorHIndex)) / log(10)) * 0.04 : 0.0;
-        $journalFactor = $journalMean !== null ? muginSemanticQualityLog1p(max(0, $journalMean)) * 0.04 : 0.0;
+        $journalFactor = $journalMean !== null ? muginSemanticQualityLog1p(max(0, $journalMean)) * 0.04 : $quartileFactor;
         return [
             'multiplier' => muginSemanticQualityClampTo(1.0 + $authorFactor + $journalFactor, $clamp),
-            'components' => ['authorHIndex' => $authorHIndex, 'journalMean' => $journalMean],
+            'components' => [
+                'authorHIndex' => $authorHIndex,
+                'journalMean' => $journalMean,
+                'journalQuartile' => $journalMean === null ? $quartile : null,
+            ],
         ];
     }
 }

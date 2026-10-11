@@ -1011,6 +1011,9 @@ components:
           nullable: true
         openAccessUrl:
           type: string
+          description: >
+            OpenAlex oa_url når den findes. Ellers Elicits fullTextUrl.
+            Tom streng, når ingen af dem har et link. Sætter ikke isOpenAccess.
         isRetracted:
           type: boolean
           nullable: true

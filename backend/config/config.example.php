@@ -47,8 +47,10 @@ define('SEMANTIC_SCHOLAR_API_KEY', '');
 // Optional domain override file:
 // data/content/<domain>/domain-config.json -> openalex.api_key / openalex.email
 // Missing values automatically fall back to this backend config.
-// API key is recommended to reduce public rate limiting:
-// https://developers.openalex.org/api-reference/introduction
+// OpenAlex retired the polite pool in February 2026. mailto is ignored and does
+// not raise the quota. The API key is what production requests are billed and
+// rate-limited on. Search stays on search.semantic.
+// https://help.openalex.org/api/authentication/
 define('OPENALEX_API_KEY', '');
 define('OPENALEX_EMAIL', '');
 
@@ -135,11 +137,11 @@ define('MUGIN_SEMANTIC_SOURCE_LIMITS', [
     // Elicit's per-request result cap depends on plan: Pro = 300, Scale = 500,
     // Enterprise = 10000. Raise this up to your plan's cap if desired.
     'elicit' => 100,
-    'pubmedBestMatch' => 200,
-    // Optional PubMed-specific limits. Defaults should stay conservative
-    // because deterministic reranking uses the full retrieved candidate pool.
-    'pubmedBestMatchPubmedOnly' => 200,
-    'pubmedBestMatchMultiSource' => 200,
+    'pubmedBestMatch' => 400,
+    // Optional PubMed-specific limits. The full retrieved pool is reranked,
+    // so these stay at the relevant head of a PubMed relevance list.
+    'pubmedBestMatchPubmedOnly' => 400,
+    'pubmedBestMatchMultiSource' => 400,
 ]);
 
 // ============ Unified Search Engine (feature flag) ============

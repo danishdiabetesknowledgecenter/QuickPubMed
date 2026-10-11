@@ -400,24 +400,25 @@ Hvis backend kun kan levere et delvist resultat, kan payload markeres som `parti
 
 OpenAlex bruges på flere niveauer:
 
-- primær semantisk retrieval via `search.semantic`
-- eventuel keyword-søgning som supplement
-- metadata- og DOI-hydrering efter retrieval-fasen
+- primær semantisk retrieval via `search.semantic` (forespørgslen klippes til 2.000 tegn i selve kaldet), med de valgte lovlige filtre
+- keyword-søgning via `search.title_abstract_keywords` og `rerank=true`, kun når den semantiske søgning fejler eller ikke giver kandidater med PubMed-id eller DOI
+- metadata- og DOI-hydrering efter retrieval-fasen for artikler uden PubMed-id
 
 OpenAlex er især vigtig som filter-kompatibel metadata-rygrad for ikke-PMID-records, fordi den giver stabile kilde- og bibliografifelter, som kan bruges til post-validering.
 
-OpenAlex kan bruge disse retrieval-filtre:
+OpenAlex kan bruge disse filtre på både det semantiske kald og keyword-nødkaldet:
 
 - `language`
-- `sourceType`
-- `workType`
-- `publicationYear`
+- `workType` (`type`). Konferencepublikation sendes som `conference-paper` og `conference-abstract`, fordi `primary_location.source.type` afvises på `search.semantic`
+- `publicationYear` (`2020` eller `2020-2024`)
+- `isOa` (`open_access.is_oa:true`)
+- `studyDesigns` (`study_designs.id`), kun for randomiserede, kontrollerede forsøg og systematiske reviews inklusive metaanalyser. To valgte designs sendes som AND
 
-OpenAlex bruger `search.semantic` som primær mode, medmindre `sourceType`-filtre er aktive. Når `sourceType` er aktivt, bruges `keyword` som primær mode, fordi den kombination er mere robust mod OpenAlex' semantiske endpoint.
+`cited_by_count` og `country_code` sendes ikke som filtre. `rerank` sættes kun på keyword-kaldet. Rækkefølgen i svaret er rangen, og den sorteres ikke bagefter på `relevance_score`.
 
-Hvis OpenAlex rammer `OPENALEX_SEMANTIC_RESULT_CAP`, udløses en ekstra keyword-søgning, og de to resultatsæt flettes bagefter. Det samme keyword-supplement bruges, når semantisk retrieval fejler helt med 0 kandidater.
+Et fyldt loft på 50 og et valgt filter starter ikke keyword. Keyword kører højst én gang, med de samme filtre, når det semantiske kald fejler eller ikke giver kandidater med PubMed-id eller DOI.
 
-OpenAlex retry'er ikke længere ved enhver warning. Backend forsøger i stedet at udlede, om konkrete filterparametre ser ud til at være problemet, og returnerer i så fald strukturerede `retryHints`. Frontend kan prøve flere hintede retry-felter sekventielt og accepterer det første retry-resultat uden warning eller error. Hvis `sourceType` ser ud til at give fejl, prøves altså en request uden `sourceType`, mens de øvrige filtre bevares.
+På DOI-opslaget for artikler uden PubMed-id tjekkes sprog, åben adgang, kildeformat, review-type, studiedesign og vestlige lande på den hentede post. Konferencetype frasorteres, når brugeren har valgt videnskabelig artikel og ikke også konferencepublikation. Vestlige lande er Europa eller institution i USA, Canada, Australien eller New Zealand. En post uden institutionsland beholdes.
 
 I lokal udvikling kan frontend også prøve browser-proxy fallback ved backend-warning. Ved kendte upstream-fejl fra OpenAlex' semantiske embedding, fx at query ikke kan embeddes, springes browser-proxy fallback over, og flowet går i stedet videre til keyword fallback.
 
@@ -429,7 +430,9 @@ Elicit bruges som en semantisk retrieval-kilde med naturligt sprog, via Elicits 
 - der kan sendes `typeTags`, `includeKeywords`, `excludeKeywords`, `minYear`, `maxYear`, `minEpochS`, `maxEpochS`, `maxQuartile`, `hasPdf`, `pubmedOnly` og `retracted`
 - `retracted` defaultes internt til `exclude_retracted`
 - `corpus` sendes explicit som `"elicit"` (Elicits fulde paper-indeks, ikke kun PubMed) og `searchMode` explicit som `"semantic"`
+- `query` klippes til 2.000 tegn i selve kaldet. Den viste søgestreng beholdes
 - `maxResults` er konfigureret til 300 pr. kald (`MUGIN_SEMANTIC_SOURCE_LIMITS['elicit']`), inden for Pro-planens grænse på 300 resultater pr. request
+- svaret bidrager med `studyTypeTags` (mappet til `publicationTypes`; `RCT` bliver `Randomized Controlled Trial`), `journalQuartile`, `fullTextUrl` og `warnings`
 
 Elicit følger nu samme princip som OpenAlex ved retry:
 
@@ -469,14 +472,14 @@ Det betyder, at OpenAlex gerne må være den vigtigste metadata-kilde til filtre
 
 Før selve genrangeringen kører et enrichment-lag (`04b Enrichment` i search-flow-debug). Det beriger kandidaterne med ekstra kvalitetssignaler, som senere bruges af både den deterministiske rerank og LLM-rerank. Enrichment består af to parallelle kald fra `DropdownWrapper.vue`:
 
-- `ICiteLookup.php` — batch-kald (op til 500 PMIDs pr. batch) til NIH iCite, der leverer Relative Citation Ratio (RCR), NIH percentile, `is_clinical`, `cited_by_clin`, `apt` og `field_citation_rate`. iCite dækker kun PMIDs; DOI-only kandidater får `null` og falder tilbage på FWCI.
+- `ICiteLookup.php` — batch-kald (op til 500 PMIDs pr. batch) til NIH iCite. Kaldet sender `fl=pmid,relative_citation_ratio,nih_percentile,is_clinical,cited_by_clin,apt,field_citation_rate`, så citations- og referencelister ikke hentes. iCite dækker kun PMIDs; DOI-only kandidater får `null` og falder tilbage på FWCI. Foreløbig RCR (`provisional`) ændrer ikke scoren.
 - `OpenAlexAuthorityLookup.php` — batch-kald (50 ids pr. batch) til OpenAlex for forfatter-h-index (`authorityAuthors.maxHIndex`) og journal-metrics (`authorityJournal.meanCitedness`, `hIndex`, `isInDoaj`).
 
 Derudover bæres følgende signaler allerede direkte i retrieval-responsen uden ekstra kald:
 
 - OpenAlex: `fwci`, `cited_by_count`, `counts_by_year`, `is_retracted`, `open_access.is_oa`, `primary_topic`, `authorships[].author.id`, `primary_location.source.id`.
 - Semantic Scholar: `citationCount`, `influentialCitationCount`, `s2FieldsOfStudy`, `tldr`, `isOpenAccess`.
-- Elicit (v2): `citedByCount`, `authors`. Elicit returnerer ikke noget publikationstype-felt på selve paper-objektet, så `pubTypes` kan ikke udledes fra Elicit alene — kun via merge med en anden kilde.
+- Elicit (v2): `citedByCount`, `authors`, `studyTypeTags` (mappet ind i `publicationTypes`), `journalQuartile` og `fullTextUrl`. `RCT` bliver `Randomized Controlled Trial`, så klassifikatoren kan give RCT- eller review-tier, også når PubMed kun har mærket artiklen `Journal Article`.
 
 Ved fejl i enrichment (fx iCite nede) logges en warning, men rerank kører videre uden de manglende signaler.
 
@@ -490,18 +493,19 @@ Ved fejl i enrichment (fx iCite nede) logges en warning, men rerank kører vider
 - `rcr`, `nihPercentile`, `isClinical`, `citedByClin`, `apt` = kun iCite.
 - `influentialCitationCount` = kun S2.
 - `publicationYear` = prioritet OpenAlex → S2 → Elicit.
-- `pubTypes` = union af alle kilder.
+- `pubTypes` = union af alle kilder, inklusive Elicits mappede `studyTypeTags`.
 - `primaryTopicDisplayName` = OpenAlex.
 - `s2FieldsOfStudy` = S2.
-- `isOpenAccess` = `any(sources)`.
+- `isOpenAccess` = `any(sources)`. `fullTextUrl` sætter ikke flaget.
 - `authorityAuthors`, `authorityJournal` = OpenAlex.
+- `journalQuartile` = laveste (bedste) tal fra Elicit. Første ikke-tomme `fullTextUrl` beholdes.
 
 ### Klassifikation og data quality (M2)
 
 Mellem enrichment (`04b`) og den deterministiske rerank (`05`) klassificeres hver kandidat til én kanonisk publikationstype (`04c Classification` i search-flow-debug). Klassifikationen ligger i `src/utils/pubTypeClassifier.js` og kombinerer flere signaler i denne rækkefølge:
 
 1. Match mod `guidelinePublisherAllowList` (fx WHO, NICE, CDC, Sundhedsstyrelsen, ADA) → `guideline_verified`.
-2. `publicationTypes`-felter fra PubMed og S2 (fx `Guideline`, `Practice Guideline`, `Systematic Review`, `Meta-Analysis`, `Randomized Controlled Trial`) → `guideline_candidate`, `systematic_review_or_meta`, `clinical_trial`.
+2. `publicationTypes`-felter fra PubMed, Semantic Scholar og Elicit (fx `Guideline`, `Practice Guideline`, `Systematic Review`, `Meta-Analysis`, `Randomized Controlled Trial`) → `guideline_candidate`, `systematic_review_or_meta`, `randomized_controlled_trial`, `clinical_trial`.
 3. OpenAlex `workType` (`book-chapter`, `dissertation`, `preprint`, `review`, `report`).
 4. Titelmønstre (fx "chapter", "thesis", "errata") som sidste fallback.
 
@@ -545,6 +549,10 @@ Hvis kun én kilde faktisk leverer kandidater, skifter systemet til `single`-til
 5. Intet signal → neutral multiplier 1.0
 
 Det sikrer, at DOI-only kandidater stadig får et citation-signal via FWCI, selv om iCite ikke kan nås via DOI.
+
+### Tidsskriftskvartil i authority-multiplikatoren
+
+`computeAuthorityMultiplier` bruger forfatter-h-index og OpenAlex `authorityJournal.meanCitedness`, når de findes. Elicits `journalQuartile` fylder kun hullet, når `meanCitedness` er null og `authorityClamp` ikke er slået fra: Q1 sætter journal-faktoren til 0,02, Q2 til 0,01. Faktoren indgår i den eksisterende `1.0 + authorFactor + journalFactor` og klemmes som de andre authority-signaler.
 
 ### Retraction-håndtering
 
@@ -653,7 +661,7 @@ Brugeren gør følgende:
 2. Når brugeren klikker på søg, bygger `prepareSemanticSearchStateBeforeSearch()` normalt ét globalt semantic state for hele formularen, fordi AI og globalt intent-input er aktive. Tag-niveau-flowet bruges kun som fallback.
 3. Fordi AI og PubMed er aktive, dannes der en PubMed-søgestreng, som efter MeSH-validering kan ende med termer som `"Artificial Intelligence"[mh]`, `"Machine Learning"[mh]` og relevante fritekstsynonymer.
 4. Fordi AI og semantiske kilder også er aktive, dannes der en semantisk intention og en `semanticSourceQueryPlan`.
-5. OpenAlex kaldes med sin semantiske query og sine filtre, medmindre `sourceType`-filtre gør keyword-mode til primær mode. Hvis OpenAlex rammer sit cap eller semantisk retrieval fejler helt med 0 kandidater, suppleres med keyword-søgning. Hvis backend returnerer retry-hints, kan frontend prøve flere hintede filterfelter sekventielt og acceptere første rene svar.
+5. OpenAlex kaldes semantisk med de valgte filtre. Keyword bruges kun, hvis det kald fejler eller ikke giver kandidater.
 6. Elicit kaldes med en naturlig sproglig forskningsforespørgsel og sine resolved filtre. Også her kan frontend prøve flere hintede retry-felter sekventielt og acceptere første svar uden warning eller error.
 7. Kandidater fra kilderne normaliseres og flettes ved PMID eller DOI.
 8. Kandidaterne genrangeres med vægtet RRF, PMID-bonus, overlap-bonus og eventuel tie-breaker-score.
@@ -726,7 +734,7 @@ Ansvar:
 
 - `UnifiedSearch.php`: first-party indgang → `muginPublicSearchRunSearch()`
 - `public-search-lib.php` / `semantic-quality-lib.php`: orkestrering, hybrid rerank, validering
-- `NlmSearch.php`, `NlmSummary.php`, `NlmFetch.php`: PubMed- og NLM-proxy
+- `NlmSearch.php`, `NlmSummary.php`, `NlmFetch.php`: PubMed- og NLM-proxy. Sammen med de offentlige søgekalde drossles de af `muginNlmRequestsPerSecond()` til 10 kald i sekundet med API-nøgle og 3 uden.
 - `TranslateTitle.php`: AI-proxy til PubMed-translation, semantic intent, structured output og MeSH-optimering
 - `SemanticScholarSearch.php`, `OpenAlexSearch.php`, `ElicitSearch.php`: kilde-proxies
 - `OpenAlexWorkLookup.php`: hydrering af DOI-/OpenAlex-records

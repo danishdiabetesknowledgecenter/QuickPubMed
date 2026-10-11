@@ -63,7 +63,7 @@ Alle hybride kvalitetssignaler er styret af `MUGIN_RERANK_CONFIG` i `backend/con
 Signaler der indgår i multiplikatoren og bonuserne:
 
 - `citationImpactMultiplier` — RCR (iCite) → FWCI (OpenAlex) → influentialCitationCount (S2) → citedByCount
-- `authorityMultiplier` — forfatter-h-index og journal 2yr_mean_citedness (default disabled)
+- `authorityMultiplier` — forfatter-h-index og journal `meanCitedness` (default disabled). Elicit `journalQuartile` bruges kun som fallback, når `meanCitedness` mangler: Q1 = 0,02, Q2 = 0,01
 - `retractionMultiplier` — styret af `retractionAction` (`none`/`penalty`/`filter`)
 - `dataQualityMultiplier` *(M2)* — nedgraderer records uden abstract/forfatter/årstal via `dataQualityPenalties`
 - `pubTypeTierBonus` *(M2)*, `recencyBonus`, `oaBonus`, `clinicalBonus`, `topicOverlapBonus` — additive bidrag (`topicOverlapBonus` er fair: manglende emner = 0, aldrig straf; DOI-only OA/S2-emner tæller)

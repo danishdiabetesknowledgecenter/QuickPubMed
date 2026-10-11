@@ -51,7 +51,7 @@ $nlmBaseUrl = muginGetNlmBaseUrl($domain);
 $url = $nlmBaseUrl . '/esearch.fcgi';
 
 // Make request to NLM (use POST to avoid long URL issues)
-muginThrottleNlmRequests(10);
+muginThrottleNlmRequests(muginNlmRequestsPerSecond($domain));
 $requestBody = http_build_query($params);
 $requestHeaders = ['Content-Type' => 'application/x-www-form-urlencoded'];
 

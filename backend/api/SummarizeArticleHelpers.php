@@ -155,7 +155,6 @@ function muginFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $so
     $azureResponse = curl_exec($ch);
     $azureHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
-    curl_close($ch);
 
     if ($curlError) {
         http_response_code(500);
@@ -425,8 +424,6 @@ function muginStreamOpenAiPlainText($openaiRequest) {
     if (trim($sseBuffer) !== '') {
         $processSseLine($sseBuffer);
     }
-
-    curl_close($ch);
 
     if ($errno) {
         error_log("OpenAI curl error ($errno): $error");

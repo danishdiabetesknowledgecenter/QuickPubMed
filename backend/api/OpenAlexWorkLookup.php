@@ -194,7 +194,7 @@ if ($isBatchLookup) {
             'per_page' => $filterChunk['count'],
             'select' => $lightSelect
                 ? 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,primary_location,language,type,type_crossref'
-                : 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref,primary_topic,topics,keywords,open_access,is_retracted,cited_by_count',
+                : muginOpenAlexWorkFullSelect(),
         ];
         if ($openAlexApiKey !== '') {
             $requestParams['api_key'] = $openAlexApiKey;

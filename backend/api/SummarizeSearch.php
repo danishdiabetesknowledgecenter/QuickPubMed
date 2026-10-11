@@ -374,7 +374,6 @@ if (trim($sseBuffer) !== '') {
 }
 
 if (($curlResult === false || $curlError !== '') && !$hasStreamedText) {
-    curl_close($ch);
     $respondOpenAiError('OpenAI request failed', 502, [
         'status' => $curlStatus,
         'details' => $curlError !== '' ? $curlError : 'OpenAI request failed',
@@ -383,12 +382,10 @@ if (($curlResult === false || $curlError !== '') && !$hasStreamedText) {
 
 if ($curlError !== '') {
     error_log('OpenAI summarize stream curl error: ' . $curlError);
-    curl_close($ch);
     exit;
 }
 
 if ($curlStatus > 0 && ($curlStatus < 200 || $curlStatus >= 300) && !$hasStreamedText) {
-    curl_close($ch);
     $respondOpenAiError('OpenAI request failed', 502, [
         'status' => $curlStatus,
         'details' => trim($sseBuffer) !== ''
@@ -398,7 +395,6 @@ if ($curlStatus > 0 && ($curlStatus < 200 || $curlStatus >= 300) && !$hasStreame
 }
 
 if (!$hasStreamedText) {
-    curl_close($ch);
     $incompleteReason = trim((string) ($GLOBALS['muginSummaryIncompleteReason'] ?? ''));
     $respondOpenAiError(
         $incompleteReason !== ''
@@ -414,5 +410,3 @@ if (!$hasStreamedText) {
 echo "\n" . $streamCompleteMarker;
 @ob_flush();
 @flush();
-
-curl_close($ch);

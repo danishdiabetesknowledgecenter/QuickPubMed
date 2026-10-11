@@ -103,23 +103,19 @@ $result = muginPublicSearchFetchOpenAlexSourceResult('santa claus', [
     'publicationYear' => '',
 ], 'template');
 
-assertTrue(count($result['candidates']) === 3, 'Semantic and keyword candidates merge with deduplication');
-assertTrue(($result['fallbackUsed'] ?? false) === true, 'Filtered semantic search records supplement usage');
-assertTrue(($result['fallbackReason'] ?? '') === 'semantic-filter-supplement', 'Supplement reason matches legacy');
+assertTrue(count($result['candidates']) === 2, 'Filtered semantic search keeps semantic candidates');
+assertTrue(($result['fallbackUsed'] ?? false) === false, 'Filters no longer trigger keyword');
+assertTrue(($result['requestMeta']['keywordSupplementAttempted'] ?? false) === false, 'Keyword is not attempted when semantic returns candidates');
 assertTrue(
-    ($result['requestMeta']['keywordSupplementUsed'] ?? false) === true,
-    'Keyword supplement metadata is retained'
-);
-assertTrue(
-    ($result['requestMeta']['disabledRequestFields'] ?? []) === ['languages', 'workTypes'],
-    'Deferred semantic filter fields match the request'
+    ($result['requestMeta']['disabledRequestFields'] ?? []) === [],
+    'Semantic search no longer defers filter fields'
 );
 
 $GLOBALS['__qpm_openalex_semantic_mode'] = 'cap';
 $capResult = muginPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
-assertTrue(count($capResult['candidates']) >= 50, 'Semantic-cap triggers keyword merge');
-assertTrue(($capResult['requestMeta']['keywordSupplementAttempted'] ?? false) === true, 'Cap path attempts keyword');
-assertTrue(($capResult['fallbackReason'] ?? '') === '', 'Cap-only path keeps empty fallbackReason like legacy');
+assertTrue(count($capResult['candidates']) >= 50, 'Semantic cap is returned without a keyword merge');
+assertTrue(($capResult['requestMeta']['keywordSupplementAttempted'] ?? false) === false, 'Cap path does not attempt keyword');
+assertTrue(($capResult['fallbackReason'] ?? '') === '', 'Cap path keeps an empty fallback reason');
 
 $GLOBALS['__qpm_openalex_semantic_mode'] = 'fail';
 $failResult = muginPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
@@ -131,5 +127,84 @@ $GLOBALS['__qpm_openalex_semantic_mode'] = 'filter';
 $clean = muginPublicSearchFetchOpenAlexSourceResult('santa claus', [], 'template');
 assertTrue(($clean['requestMeta']['fallbackUsed'] ?? false) === false, 'Unfiltered below-cap semantic skips keyword');
 assertTrue(count($clean['candidates']) === 2, 'Unfiltered semantic returns primary candidates only');
+
+$designs = muginPublicSearchMapHardFiltersToOpenAlexStudyDesigns(
+    ['systematic review', 'meta-analysis', 'review', 'cochrane review'],
+    ['randomized controlled trial', 'cohort study']
+);
+assertTrue($designs === ['systematic-review', 'randomized-controlled-trial'], 'Only RCT and systematic review map to OpenAlex study designs');
+
+$andSpec = muginPublicSearchBuildOpenAlexSourceRequestSpec('diabetes', [
+    'studyDesigns' => ['systematic-review', 'randomized-controlled-trial'],
+    'language' => ['en'],
+], 'template', '', 'semantic');
+$andUrl = (string) ($andSpec['url'] ?? '');
+assertTrue(strpos($andUrl, 'study_designs.id%3Asystematic-review') !== false || strpos($andUrl, 'study_designs.id:systematic-review') !== false, 'Systematic review design is sent');
+assertTrue(strpos($andUrl, 'study_designs.id%3Arandomized-controlled-trial') !== false || strpos($andUrl, 'study_designs.id:randomized-controlled-trial') !== false, 'RCT design is sent');
+assertTrue(strpos($andUrl, 'rerank') === false, 'Semantic request does not send rerank');
+assertTrue(substr_count($andUrl, 'study_designs.id') === 2, 'Two study designs are separate AND clauses');
+
+$journalWork = [
+    'language' => 'en',
+    'type' => 'article',
+    'primary_location' => ['source' => ['type' => 'conference']],
+    'study_designs' => [],
+    'open_access' => ['is_oa' => false],
+    'authorships' => [],
+];
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($journalWork, ['sourceFormats' => ['journal']]) === false,
+    'Journal-only selection drops a conference source'
+);
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($journalWork, ['sourceFormats' => ['journal', 'conference']]) === true,
+    'Journal plus conference keeps a conference source'
+);
+$untagged = $journalWork;
+$untagged['primary_location']['source']['type'] = 'journal';
+unset($untagged['study_designs']);
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($untagged, ['studyDesigns' => ['randomized controlled trial']]) === true,
+    'A missing study_designs key is not treated as untagged'
+);
+$untagged['study_designs'] = [];
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($untagged, ['studyDesigns' => ['randomized controlled trial']]) === false,
+    'An empty study_designs list is dropped when RCT is required'
+);
+$untagged['study_designs'] = [['id' => 'https://openalex.org/study-designs/randomized-controlled-trial']];
+$untagged['language'] = '';
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($untagged, [
+        'studyDesigns' => ['randomized controlled trial'],
+        'languages' => ['en'],
+    ]) === false,
+    'A work with no language is dropped when a language is required'
+);
+$untagged['language'] = 'en';
+$untagged['authorships'] = [[
+    'institutions' => [['country_code' => 'DE', 'continent' => 'europe']],
+]];
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($untagged, ['filterProfiles' => ['western-countries']]) === true,
+    'A European institution counts as western'
+);
+$untagged['authorships'] = [[
+    'institutions' => [['country_code' => 'BR', 'continent' => 'south-america']],
+]];
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($untagged, ['filterProfiles' => ['western-countries']]) === false,
+    'A non-western institution country is dropped'
+);
+$untagged['authorships'] = [];
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($untagged, ['filterProfiles' => ['western-countries']]) === true,
+    'A work with no institution country is kept'
+);
+$untagged['open_access'] = ['is_oa' => false];
+assertTrue(
+    muginPublicSearchCandidateMatchesOpenAlexDoiFilters($untagged, [], ['isOa' => true]) === false,
+    'Open access requires is_oa true'
+);
 
 echo PHP_EOL . 'All OpenAlex fallback parity smoke tests passed.' . PHP_EOL;

@@ -76,14 +76,14 @@ $semanticSourceLimits = [
     'semanticScholar' => muginGetSemanticSourceLimit('semanticScholar', 400),
     'openAlex' => muginGetSemanticSourceLimit('openAlex', 100),
     'elicit' => muginGetSemanticSourceLimit('elicit', 100),
-    'pubmedBestMatch' => muginGetSemanticSourceLimit('pubmedBestMatch', 200),
+    'pubmedBestMatch' => muginGetSemanticSourceLimit('pubmedBestMatch', 400),
     'pubmedBestMatchPubmedOnly' => muginGetSemanticSourceLimit(
         'pubmedBestMatchPubmedOnly',
-        muginGetSemanticSourceLimit('pubmedBestMatch', 200)
+        muginGetSemanticSourceLimit('pubmedBestMatch', 400)
     ),
     'pubmedBestMatchMultiSource' => muginGetSemanticSourceLimit(
         'pubmedBestMatchMultiSource',
-        muginGetSemanticSourceLimit('pubmedBestMatch', 200)
+        muginGetSemanticSourceLimit('pubmedBestMatch', 400)
     ),
 ];
 $semanticRescueConfig = defined('MUGIN_SEMANTIC_RESCUE_CONFIG') && is_array(MUGIN_SEMANTIC_RESCUE_CONFIG)

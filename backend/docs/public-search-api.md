@@ -559,7 +559,7 @@ Hvert resultat i `results` indeholder desuden en fast, ensartet mængde berigede
   - `abstractParagraphs`: samme indhold som `abstractSections`, men som en enkelt plain text-streng, hvor sektionerne er skilt med et dobbelt linjeskift (`\n\n`) i stedet for et enkelt mellemrum. Nyttig til visning, hvis du vil have læsevenlige afsnit uden selv at skulle samle `abstractSections`. `""` hvis der ikke er noget abstract.
 - `citationCount` / `citationCountSource`: antal citationer og hvilken kilde tallet stammer fra (`"openAlex"` eller `"semanticScholar"`). `citationCount` er `null`, og `citationCountSource` er `""`, når ingen af kilderne har data for det pågældende resultat.
 - `isOpenAccess`: `true`/`false`, eller `null` hvis ingen kilde har afgjort det.
-- `openAccessUrl`: link til open access-version, hvis kendt fra OpenAlex. `""` ellers.
+- `openAccessUrl`: link til en åben version, hvis OpenAlex kender `oa_url`. Ellers Elicits `fullTextUrl`, når det findes. `""` hvis ingen af dem har et link. Feltet sætter ikke `isOpenAccess`.
 - `isRetracted`: `true`/`false` fra OpenAlex, eller `null` for resultater der er hydreret via PubMed (PubMed esummary indeholder ikke denne oplysning).
 - `aiSummary`: kort AI-genereret resumé fra Semantic Scholar (`tldr`), hvis resultatet har været en Semantic Scholar-kandidat. `""` ellers.
 

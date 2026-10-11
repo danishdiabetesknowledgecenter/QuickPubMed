@@ -1946,6 +1946,8 @@ if (!function_exists('muginPublicSearchNormalizeOpenAlexWorkType')) {
             'retraction' => 'retraction',
             'standard' => 'standard',
             'supplementarymaterials' => 'supplementary-materials',
+            'conferencepaper' => 'conference-paper',
+            'conferenceabstract' => 'conference-abstract',
         ];
         return $map[$compact] ?? '';
     }
@@ -6731,6 +6733,53 @@ if (!function_exists('muginPublicSearchMapPublicationTypesToOpenAlexWorkTypes'))
     }
 }
 
+if (!function_exists('muginPublicSearchNormalizeOpenAlexStudyDesignId')) {
+    /**
+     * @param mixed $value
+     * @return string
+     */
+    function muginPublicSearchNormalizeOpenAlexStudyDesignId($value): string
+    {
+        $compact = strtolower((string) preg_replace('/[\s_-]+/', '', trim((string) $value)));
+        if ($compact === 'systematicreview') {
+            return 'systematic-review';
+        }
+        if ($compact === 'randomizedcontrolledtrial') {
+            return 'randomized-controlled-trial';
+        }
+        return '';
+    }
+}
+
+if (!function_exists('muginPublicSearchMapHardFiltersToOpenAlexStudyDesigns')) {
+    /**
+     * OpenAlex study_designs that match a user limit. Other study types
+     * have no covering design and are left out. Each returned id is required
+     * (AND across groups).
+     *
+     * @param array<int,string> $publicationTypes
+     * @param array<int,string> $studyDesigns
+     * @return array<int,string>
+     */
+    function muginPublicSearchMapHardFiltersToOpenAlexStudyDesigns(array $publicationTypes, array $studyDesigns): array
+    {
+        $output = [];
+        foreach ($publicationTypes as $value) {
+            $normalized = muginPublicSearchNormalizeHardPublicationType($value);
+            if (in_array($normalized, ['systematic review', 'meta-analysis'], true)) {
+                $output[] = 'systematic-review';
+            }
+        }
+        foreach ($studyDesigns as $value) {
+            $compact = strtolower((string) preg_replace('/[\s_-]+/', '', trim((string) $value)));
+            if (in_array($compact, ['randomizedcontrolledtrial', 'randomisedcontrolledtrial', 'rct'], true)) {
+                $output[] = 'randomized-controlled-trial';
+            }
+        }
+        return muginPublicSearchDedupeStrings($output);
+    }
+}
+
 if (!function_exists('muginPublicSearchMapSourceFormatsToOpenAlexFilters')) {
     /**
      * @param array<int,string> $sourceFormats
@@ -6750,7 +6799,10 @@ if (!function_exists('muginPublicSearchMapSourceFormatsToOpenAlexFilters')) {
             if ($normalized === 'journal') {
                 $workTypes[] = 'article';
             } elseif ($normalized === 'conference') {
-                $sourceTypes[] = 'conference';
+                // primary_location.source.type is rejected on search.semantic.
+                // type is allowed, and these two types are the conference works.
+                $workTypes[] = 'conference-paper';
+                $workTypes[] = 'conference-abstract';
             } elseif ($normalized === 'preprint') {
                 $workTypes[] = 'preprint';
             }
@@ -7126,6 +7178,16 @@ if (!function_exists('muginPublicSearchBuildSourceQueryPlan')) {
         $openAlexIsOa = muginPublicSearchNormalizeElicitBooleanValue(
             $sourceFilters['openAlex']['isOa'] ?? ($sourceFilters['openAlex']['is_oa'] ?? null)
         );
+        $fallbackOpenAlexStudyDesigns = muginPublicSearchMapHardFiltersToOpenAlexStudyDesigns(
+            (array) ($hardFilters['publicationTypes'] ?? []),
+            (array) ($hardFilters['studyDesigns'] ?? [])
+        );
+        $configuredOpenAlexStudyDesigns = muginPublicSearchDedupeStrings(array_values(array_filter(
+            array_map('muginPublicSearchNormalizeOpenAlexStudyDesignId', (array) ($sourceFilters['openAlex']['studyDesigns'] ?? []))
+        )));
+        $openAlexStudyDesigns = !empty($configuredOpenAlexStudyDesigns)
+            ? $configuredOpenAlexStudyDesigns
+            : $fallbackOpenAlexStudyDesigns;
 
         $semanticScholarPublicationTypes = muginPublicSearchDedupeStrings(array_merge(
             (array) ($sourceFilters['semanticScholar']['publicationTypes'] ?? []),
@@ -7208,6 +7270,7 @@ if (!function_exists('muginPublicSearchBuildSourceQueryPlan')) {
                         'sourceType' => $openAlexSourceTypes,
                         'workType' => $openAlexWorkTypes,
                         'publicationYear' => $openAlexPublicationYear,
+                        'studyDesigns' => $openAlexStudyDesigns,
                     ],
                     $openAlexIsOa !== null ? ['isOa' => $openAlexIsOa] : []
                 ),
@@ -8927,6 +8990,11 @@ if (!function_exists('muginPublicSearchNormalizeSourceCandidate')) {
                     ? (int) $metadata['influentialCitationCount']
                     : null,
                 's2FieldsOfStudy' => muginPublicSearchNormalizeSimpleList($metadata['s2FieldsOfStudy'] ?? []),
+                'journalQuartile' => (isset($metadata['journalQuartile']) && is_numeric($metadata['journalQuartile'])
+                    && (int) $metadata['journalQuartile'] >= 1 && (int) $metadata['journalQuartile'] <= 4)
+                    ? (int) $metadata['journalQuartile']
+                    : null,
+                'fullTextUrl' => trim((string) ($metadata['fullTextUrl'] ?? '')),
             ],
         ];
     }
@@ -9193,7 +9261,7 @@ if (!function_exists('muginPublicSearchNlmGetJson')) {
         $endpointUrl = rtrim($baseUrl, '/') . '/' . ltrim($endpoint, '/');
         $queryString = muginPublicSearchBuildNlmQueryParams($params, $domain);
         $requestOptions = muginPublicSearchBuildNlmRequestOptions($endpointUrl, $queryString, ['Accept: application/json']);
-        $nlmRate = (function_exists('muginGetNlmApiKey') && muginGetNlmApiKey($domain) !== '') ? 10 : 5;
+        $nlmRate = muginNlmRequestsPerSecond($domain);
         muginThrottleRequestRateUnlessPrefetched('nlm', $nlmRate, $requestOptions['url'], $requestOptions['options']);
         $result = muginHttpRequest($requestOptions['url'], $requestOptions['options']);
         if (!muginPublicSearchIsHttpResultOk($result)) {
@@ -9226,7 +9294,7 @@ if (!function_exists('muginPublicSearchNlmGetXml')) {
             $queryString,
             ['Accept: application/xml,text/xml,*/*']
         );
-        $nlmRate = (function_exists('muginGetNlmApiKey') && muginGetNlmApiKey($domain) !== '') ? 10 : 5;
+        $nlmRate = muginNlmRequestsPerSecond($domain);
         muginThrottleRequestRateUnlessPrefetched('nlm', $nlmRate, $requestOptions['url'], $requestOptions['options']);
         $result = muginHttpRequest($requestOptions['url'], $requestOptions['options']);
         if (!muginPublicSearchIsHttpResultOk($result)) {
@@ -9518,7 +9586,7 @@ if (!function_exists('muginPublicSearchFetchPubMedBestMatchSourceResult')) {
         if ($normalizedQuery === '') {
             return $empty;
         }
-        $searchLimit = muginPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 200);
+        $searchLimit = muginPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 400);
         try {
             $search = muginPublicSearchFetchPubMedSearchIds($normalizedQuery, $searchLimit, 'relevance', $domain);
         } catch (Throwable $exception) {
@@ -9844,8 +9912,11 @@ if (!function_exists('muginPublicSearchBuildOpenAlexSourceRequestSpec')) {
     ): array {
         $limit = muginPublicSearchGetSemanticSourceLimit('openAlex', 50);
         $searchMode = strtolower(trim($searchMode)) === 'keyword' ? 'keyword' : 'semantic';
+        $requestQuery = $searchMode === 'semantic'
+            ? muginClipExternalSearchQuery($normalizedQuery, 2000)
+            : $normalizedQuery;
         $requestParams = [
-            $searchMode === 'keyword' ? 'search' : 'search.semantic' => $normalizedQuery,
+            $searchMode === 'keyword' ? 'search.title_abstract_keywords' : 'search.semantic' => $requestQuery,
             'per_page' => $limit,
             // Aligned with backend/api/OpenAlexSearch.php's select list so the public
             // multi-source API gets the same enrichment signals (citation impact,
@@ -9863,6 +9934,9 @@ if (!function_exists('muginPublicSearchBuildOpenAlexSourceRequestSpec')) {
         );
         $publicationYear = muginPublicSearchNormalizePublicationYearRange($filters['publicationYear'] ?? '');
         $isOa = muginPublicSearchNormalizeElicitBooleanValue($filters['isOa'] ?? ($filters['is_oa'] ?? null));
+        $studyDesigns = muginPublicSearchDedupeStrings(array_values(array_filter(
+            array_map('muginPublicSearchNormalizeOpenAlexStudyDesignId', (array) ($filters['studyDesigns'] ?? []))
+        )));
         $filterParts = [];
         if (!empty($languageFilters)) {
             $filterParts[] = 'language:' . implode('|', $languageFilters);
@@ -9879,8 +9953,14 @@ if (!function_exists('muginPublicSearchBuildOpenAlexSourceRequestSpec')) {
         if ($isOa === true) {
             $filterParts[] = 'open_access.is_oa:true';
         }
+        foreach ($studyDesigns as $studyDesign) {
+            $filterParts[] = 'study_designs.id:' . $studyDesign;
+        }
         if (!empty($filterParts)) {
             $requestParams['filter'] = implode(',', $filterParts);
+        }
+        if ($searchMode === 'keyword') {
+            $requestParams['rerank'] = 'true';
         }
         $apiKey = trim($apiKeyOverride) !== '' ? trim($apiKeyOverride) : (function_exists('muginGetOpenAlexApiKey') ? muginGetOpenAlexApiKey($domain) : '');
         if ($apiKey !== '') {
@@ -10095,9 +10175,8 @@ if (!function_exists('muginPublicSearchFetchOpenAlexSourceResultSingle')) {
 
 if (!function_exists('muginPublicSearchFetchOpenAlexSourceResult')) {
     /**
-     * Mirrors the legacy widget's OpenAlex strategy: an unfiltered semantic
-     * primary request plus a keyword supplement that enforces source filters.
-     * If semantic search fails, the keyword request becomes the fallback.
+     * Semantic OpenAlex search with the selected legal filters. Keyword runs
+     * once, and only when semantic search fails or returns no PMID/DOI candidate.
      *
      * @param array<string,mixed> $filters
      * @return array<string,mixed>
@@ -10109,40 +10188,28 @@ if (!function_exists('muginPublicSearchFetchOpenAlexSourceResult')) {
         string $apiKeyOverride = ''
     ): array {
         $normalizedQuery = trim($query);
-        $openAlexSemanticFilters = [];
-        if (muginPublicSearchNormalizeElicitBooleanValue($filters['isOa'] ?? ($filters['is_oa'] ?? null)) === true) {
-            $openAlexSemanticFilters['isOa'] = true;
-        }
         $primary = muginPublicSearchFetchOpenAlexSourceResultSingle(
             $normalizedQuery,
-            $openAlexSemanticFilters,
+            $filters,
             $domain,
             $apiKeyOverride,
             'semantic'
         );
-        $disabledRequestFields = [];
-        foreach ([
-            'language' => 'languages',
-            'sourceType' => 'sourceTypes',
-            'workType' => 'workTypes',
-            'publicationYear' => 'publicationYear',
-        ] as $filterField => $requestField) {
-            $value = $filters[$filterField] ?? null;
-            if ((is_array($value) && !empty($value)) || (!is_array($value) && trim((string) $value) !== '')) {
-                $disabledRequestFields[] = $requestField;
-            }
-        }
         $primaryCandidates = isset($primary['candidates']) && is_array($primary['candidates'])
             ? $primary['candidates']
             : [];
-        $primaryCandidateCount = count($primaryCandidates);
-        $semanticCap = max(1, muginPublicSearchGetSemanticSourceLimit('openAlex', 50));
-        $primaryWarning = trim((string) ($primary['warning'] ?? ($primary['error'] ?? '')));
-        $semanticFiltersDeferred = !empty($disabledRequestFields);
-        $semanticFailedCompletely = $primaryWarning !== '' && $primaryCandidateCount === 0;
-        $semanticCapReached = $primaryWarning === '' && $primaryCandidateCount >= $semanticCap;
-        if (!$semanticFiltersDeferred && !$semanticFailedCompletely && !$semanticCapReached) {
-            $primary['requestMeta'] = ['searchMode' => 'semantic', 'fallbackUsed' => false];
+        if (count($primaryCandidates) > 0) {
+            $primary['requestMeta'] = [
+                'searchMode' => 'semantic',
+                'fallbackUsed' => false,
+                'fallbackReason' => '',
+                'disabledRequestFields' => [],
+                'semanticPrimaryUsed' => true,
+                'semanticFiltersDeferred' => false,
+                'keywordSupplementRole' => '',
+                'keywordSupplementAttempted' => false,
+                'keywordSupplementUsed' => false,
+            ];
             return $primary;
         }
 
@@ -10156,87 +10223,33 @@ if (!function_exists('muginPublicSearchFetchOpenAlexSourceResult')) {
         $supplementCandidates = isset($supplement['candidates']) && is_array($supplement['candidates'])
             ? $supplement['candidates']
             : [];
-        $mergedCandidates = [];
-        $seen = [];
-        $mergeSource = $semanticFailedCompletely
-            ? $supplementCandidates
-            : array_merge($primaryCandidates, $supplementCandidates);
-        foreach ($mergeSource as $candidate) {
-            if (!is_array($candidate)) {
-                continue;
-            }
-            $pmid = muginPublicSearchNormalizePmid($candidate['pmid'] ?? '');
-            $doi = muginPublicSearchNormalizeDoi($candidate['doi'] ?? '');
-            $openAlexId = strtolower(trim((string) ($candidate['openAlexId'] ?? '')));
-            $key = $pmid !== ''
-                ? 'pmid:' . $pmid
-                : ($doi !== '' ? 'doi:' . strtolower($doi) : ($openAlexId !== '' ? 'oa:' . $openAlexId : ''));
-            if ($key === '' || isset($seen[$key])) {
-                continue;
-            }
-            $seen[$key] = true;
-            $candidate['rank'] = count($mergedCandidates) + 1;
-            $mergedCandidates[] = $candidate;
-        }
-
-        $primarySucceeded = $primaryCandidateCount > 0 && !$semanticFailedCompletely;
         $supplementSucceeded = !empty($supplementCandidates);
-        if ($semanticFiltersDeferred && !$semanticFailedCompletely) {
-            $fallbackReason = 'semantic-filter-supplement';
-        } elseif ($semanticFailedCompletely && $supplementSucceeded) {
-            $fallbackReason = 'keyword';
-        } elseif ($semanticFiltersDeferred) {
-            $fallbackReason = $supplementSucceeded ? 'keyword' : 'filters';
-        } else {
-            // Cap-triggered supplement mirrors legacy: no fallbackReason unless
-            // filters were also deferred / semantic failed.
-            $fallbackReason = '';
-        }
-        $fallbackUsed = $semanticFiltersDeferred || ($semanticFailedCompletely && $supplementSucceeded);
-        $requestMeta = [
+        $supplement['fallbackUsed'] = $supplementSucceeded;
+        $supplement['fallbackReason'] = $supplementSucceeded ? 'keyword' : '';
+        $supplement['disabledRequestFields'] = [];
+        $supplement['requestMeta'] = [
             'searchMode' => 'semantic',
-            'fallbackUsed' => $fallbackUsed,
-            'fallbackReason' => $fallbackReason,
-            'disabledRequestFields' => $disabledRequestFields,
-            'semanticPrimaryUsed' => !$semanticFailedCompletely,
-            'semanticFiltersDeferred' => $semanticFiltersDeferred,
-            'keywordSupplementRole' => $semanticFiltersDeferred ? 'filterSupplement' : '',
+            'fallbackUsed' => $supplementSucceeded,
+            'fallbackReason' => $supplementSucceeded ? 'keyword' : '',
+            'disabledRequestFields' => [],
+            'semanticPrimaryUsed' => false,
+            'semanticFiltersDeferred' => false,
+            'keywordSupplementRole' => 'fallback',
             'keywordSupplementAttempted' => true,
             'keywordSupplementUsed' => $supplementSucceeded,
             'keywordSupplementRequest' => [
                 'query' => $normalizedQuery,
-                'limit' => $semanticCap,
+                'limit' => max(1, muginPublicSearchGetSemanticSourceLimit('openAlex', 50)),
                 'domain' => $domain,
                 'languages' => array_values((array) ($filters['language'] ?? [])),
                 'sourceTypes' => array_values((array) ($filters['sourceType'] ?? [])),
                 'workTypes' => array_values((array) ($filters['workType'] ?? [])),
                 'publicationYear' => (string) ($filters['publicationYear'] ?? ''),
+                'studyDesigns' => array_values((array) ($filters['studyDesigns'] ?? [])),
                 'searchMode' => 'keyword',
             ],
         ];
-        $warningParts = [];
-        if (!$semanticFailedCompletely || !$supplementSucceeded) {
-            foreach ([$primary, $supplement] as $sourceResult) {
-                foreach (['warning', 'error'] as $field) {
-                    $message = trim((string) ($sourceResult[$field] ?? ''));
-                    if ($message !== '') {
-                        $warningParts[] = $message;
-                    }
-                }
-            }
-        }
-        $normalized = muginPublicSearchNormalizeSourceResult('openAlex', $normalizedQuery, [
-            'total' => count($mergedCandidates),
-            'candidates' => $mergedCandidates,
-            'warning' => empty($mergedCandidates) ? implode(' | ', $warningParts) : '',
-            'partial' => !$primarySucceeded || !$supplementSucceeded,
-            'rateLimit' => $supplement['rateLimit'] ?? ($primary['rateLimit'] ?? null),
-            'fallbackUsed' => $fallbackUsed,
-            'fallbackReason' => $fallbackReason,
-            'disabledRequestFields' => $disabledRequestFields,
-            'requestMeta' => $requestMeta,
-        ]);
-        return $normalized;
+        return $supplement;
     }
 }
 
@@ -10286,7 +10299,7 @@ if (!function_exists('muginPublicSearchBuildElicitSourceRequestSpec')) {
         // default (DropdownWrapper.vue ~5918-5919) when unset.
         $requestFilters['retracted'] = muginPublicSearchNormalizeElicitRetractedValue($filters['retracted'] ?? '') ?: 'exclude_retracted';
         $payload = [
-            'query' => $normalizedQuery,
+            'query' => muginClipExternalSearchQuery($normalizedQuery, 2000),
             'maxResults' => $limit,
             'corpus' => 'elicit',
             'searchMode' => 'semantic',
@@ -10364,6 +10377,7 @@ if (!function_exists('muginPublicSearchFetchElicitSourceResult')) {
             if ($pmid === '' && $doi === '') {
                 continue;
             }
+            $rankingSignals = muginExtractElicitPaperRankingSignals($paper);
             $sourcePayload['candidates'][] = [
                 'source' => 'elicit',
                 'rank' => $index + 1,
@@ -10373,9 +10387,9 @@ if (!function_exists('muginPublicSearchFetchElicitSourceResult')) {
                 'abstract' => trim((string) ($paper['abstract'] ?? ($paper['paper']['abstract'] ?? ''))),
                 'metadata' => [
                     'publicationYear' => trim((string) ($paper['year'] ?? ($paper['paper']['year'] ?? ''))),
-                    'publicationTypes' => muginPublicSearchNormalizeSimpleList(
-                        $paper['publication_types'] ?? ($paper['paper']['publication_types'] ?? [])
-                    ),
+                    'publicationTypes' => $rankingSignals['publicationTypes'],
+                    'journalQuartile' => $rankingSignals['journalQuartile'],
+                    'fullTextUrl' => $rankingSignals['fullTextUrl'],
                     'venue' => trim((string) ($paper['venue'] ?? ($paper['paper']['venue'] ?? ''))),
                     'citedByCount' => isset($paper['citedByCount']) && is_numeric($paper['citedByCount'])
                         ? (int) $paper['citedByCount']
@@ -10391,10 +10405,16 @@ if (!function_exists('muginPublicSearchFetchElicitSourceResult')) {
             }
         }
         $rawResultCount = count((array) ($decoded['papers'] ?? $decoded['results'] ?? []));
+        $elicitWarning = muginFormatElicitSearchWarnings($decoded['warnings'] ?? []);
         if (empty($sourcePayload['candidates'])) {
             $sourcePayload['warning'] = $rawResultCount > 0
                 ? "Elicit matched {$rawResultCount} paper(s) for the resolved query, but none had a PubMed ID or DOI, so they were skipped."
                 : 'Elicit matched 0 papers for the resolved query.';
+            if ($elicitWarning !== '') {
+                $sourcePayload['warning'] .= ' | ' . $elicitWarning;
+            }
+        } elseif ($elicitWarning !== '') {
+            $sourcePayload['warning'] = $elicitWarning;
         }
         return muginPublicSearchNormalizeSourceResult('elicit', $normalizedQuery, $sourcePayload);
     }
@@ -10419,6 +10439,9 @@ if (!function_exists('muginPublicSearchGetOpenAlexWorkLookupUrl')) {
         if ($mailto !== '') {
             $queryParams['mailto'] = $mailto;
         }
+        $queryParams['select'] = function_exists('muginOpenAlexWorkFullSelect')
+            ? muginOpenAlexWorkFullSelect()
+            : 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref,primary_topic,topics,keywords,open_access,is_retracted,cited_by_count,study_designs';
         if ($openAlexId !== '') {
             return 'https://api.openalex.org/works/' . rawurlencode($openAlexId)
                 . (!empty($queryParams) ? '?' . http_build_query($queryParams) : '');
@@ -10659,6 +10682,9 @@ if (!function_exists('muginPublicSearchFetchOpenAlexWorksByCandidatesParallel'))
             $params = [
                 'filter' => 'doi:' . implode('|', $dois),
                 'per_page' => count($dois),
+                'select' => function_exists('muginOpenAlexWorkFullSelect')
+                    ? muginOpenAlexWorkFullSelect()
+                    : 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref,primary_topic,topics,keywords,open_access,is_retracted,cited_by_count,study_designs',
             ];
             if ($apiKey !== '') {
                 $params['api_key'] = $apiKey;
@@ -10829,6 +10855,152 @@ if (!function_exists('muginPublicSearchValueMatchesYearRange')) {
             return false;
         }
         return $year >= $parsed['from'] && $year <= $parsed['to'];
+    }
+}
+
+if (!function_exists('muginPublicSearchOpenAlexContinentKey')) {
+    /**
+     * @param mixed $value
+     * @return string
+     */
+    function muginPublicSearchOpenAlexContinentKey($value): string
+    {
+        if (is_array($value)) {
+            $id = trim((string) ($value['id'] ?? ''));
+            $value = $id !== '' ? $id : trim((string) ($value['display_name'] ?? ''));
+        }
+        $text = strtolower(trim((string) $value));
+        if ($text === '') {
+            return '';
+        }
+        $parts = explode('/', rtrim($text, '/'));
+        return (string) end($parts);
+    }
+}
+
+if (!function_exists('muginPublicSearchOpenAlexStudyDesignIds')) {
+    /**
+     * Null means the field was not on the work. An empty array means OpenAlex
+     * returned the field and did not tag a design.
+     *
+     * @param array<string,mixed> $work
+     * @return array<int,string>|null
+     */
+    function muginPublicSearchOpenAlexStudyDesignIds(array $work): ?array
+    {
+        if (!array_key_exists('study_designs', $work)) {
+            return null;
+        }
+        $ids = [];
+        foreach ((array) $work['study_designs'] as $entry) {
+            $raw = is_array($entry) ? ($entry['id'] ?? '') : $entry;
+            $id = muginPublicSearchNormalizeOpenAlexStudyDesignId($raw);
+            if ($id === '' && is_string($raw)) {
+                $parts = explode('/', rtrim(strtolower(trim($raw)), '/'));
+                $id = muginPublicSearchNormalizeOpenAlexStudyDesignId((string) end($parts));
+            }
+            if ($id !== '') {
+                $ids[] = $id;
+            }
+        }
+        return muginPublicSearchDedupeStrings($ids);
+    }
+}
+
+if (!function_exists('muginPublicSearchCandidateMatchesOpenAlexDoiFilters')) {
+    /**
+     * Filters that the DOI lookup applies on top of the existing year,
+     * source-format and review checks. Reads the original hard filters.
+     *
+     * @param array<string,mixed> $work
+     * @param array<string,mixed> $hardFilters
+     * @param array<string,mixed> $openAlexFilters
+     * @return bool
+     */
+    function muginPublicSearchCandidateMatchesOpenAlexDoiFilters(array $work, array $hardFilters, array $openAlexFilters = []): bool
+    {
+        $languages = muginPublicSearchDedupeStrings(
+            array_map('muginPublicSearchNormalizeLanguageCode', (array) ($hardFilters['languages'] ?? []))
+        );
+        if (empty($languages)) {
+            $languages = muginPublicSearchDedupeStrings(
+                array_map('muginPublicSearchNormalizeLanguageCode', (array) ($openAlexFilters['language'] ?? []))
+            );
+        }
+        if (!empty($languages)) {
+            $workLanguage = muginPublicSearchNormalizeLanguageCode($work['language'] ?? '');
+            if ($workLanguage === '' || !in_array($workLanguage, $languages, true)) {
+                return false;
+            }
+        }
+
+        $requireOpenAccess = muginPublicSearchNormalizeElicitBooleanValue(
+            $openAlexFilters['isOa'] ?? ($openAlexFilters['is_oa'] ?? null)
+        ) === true;
+        if ($requireOpenAccess) {
+            $openAccess = isset($work['open_access']) && is_array($work['open_access']) ? $work['open_access'] : [];
+            if (($openAccess['is_oa'] ?? null) !== true) {
+                return false;
+            }
+        }
+
+        $sourceFormats = muginPublicSearchDedupeStrings(
+            array_map('muginPublicSearchNormalizeSourceFormat', (array) ($hardFilters['sourceFormats'] ?? []))
+        );
+        if (in_array('journal', $sourceFormats, true) && !in_array('conference', $sourceFormats, true)) {
+            $sourceType = strtolower(trim((string) (($work['primary_location']['source']['type'] ?? ''))));
+            if ($sourceType === 'conference') {
+                return false;
+            }
+        }
+
+        $requiredDesigns = muginPublicSearchMapHardFiltersToOpenAlexStudyDesigns(
+            (array) ($hardFilters['publicationTypes'] ?? []),
+            (array) ($hardFilters['studyDesigns'] ?? [])
+        );
+        if (!empty($requiredDesigns)) {
+            $workDesigns = muginPublicSearchOpenAlexStudyDesignIds($work);
+            if (is_array($workDesigns)) {
+                foreach ($requiredDesigns as $requiredDesign) {
+                    if (!in_array($requiredDesign, $workDesigns, true)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        $filterProfiles = array_map(
+            static fn($value): string => strtolower(trim((string) $value)),
+            (array) ($hardFilters['filterProfiles'] ?? [])
+        );
+        if (in_array('western-countries', $filterProfiles, true)) {
+            $sawInstitutionCountry = false;
+            $sawWestern = false;
+            foreach ((array) ($work['authorships'] ?? []) as $authorship) {
+                if (!is_array($authorship)) {
+                    continue;
+                }
+                foreach ((array) ($authorship['institutions'] ?? []) as $institution) {
+                    if (!is_array($institution)) {
+                        continue;
+                    }
+                    $continent = muginPublicSearchOpenAlexContinentKey($institution['continent'] ?? '');
+                    $country = strtoupper(trim((string) ($institution['country_code'] ?? '')));
+                    if ($continent === '' && $country === '') {
+                        continue;
+                    }
+                    $sawInstitutionCountry = true;
+                    if ($continent === 'europe' || in_array($country, ['US', 'CA', 'AU', 'NZ'], true)) {
+                        $sawWestern = true;
+                    }
+                }
+            }
+            if ($sawInstitutionCountry && !$sawWestern) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
@@ -11116,7 +11288,10 @@ if (!function_exists('muginPublicSearchFetchUnifiedEnrichmentSignals')) {
         foreach ($iciteChunks as $chunkIndex => $chunk) {
             muginThrottleRequestRate('icite', 5);
             $namedRequests['icite_' . $chunkIndex] = [
-                'url' => 'https://icite.od.nih.gov/api/pubs?' . http_build_query(['pmids' => implode(',', $chunk)]),
+                'url' => 'https://icite.od.nih.gov/api/pubs?' . http_build_query([
+                    'pmids' => implode(',', $chunk),
+                    'fl' => muginICiteFieldList(),
+                ]),
                 'options' => [
                     'method' => 'GET',
                     'timeout' => 20,
@@ -11590,6 +11765,22 @@ if (!function_exists('muginPublicSearchRerankSemanticCandidates')) {
                 if ($entry['openAlexId'] === '' && trim((string) ($candidate['openAlexId'] ?? '')) !== '') {
                     $entry['openAlexId'] = trim((string) ($candidate['openAlexId'] ?? ''));
                 }
+                $incomingMeta = isset($candidate['metadata']) && is_array($candidate['metadata']) ? $candidate['metadata'] : [];
+                if (trim((string) ($entry['metadata']['fullTextUrl'] ?? '')) === '') {
+                    $incomingUrl = trim((string) ($incomingMeta['fullTextUrl'] ?? ''));
+                    if ($incomingUrl !== '') {
+                        $entry['metadata']['fullTextUrl'] = $incomingUrl;
+                    }
+                }
+                $incomingQuartile = is_numeric($incomingMeta['journalQuartile'] ?? null) ? (int) $incomingMeta['journalQuartile'] : null;
+                if ($incomingQuartile !== null && $incomingQuartile >= 1 && $incomingQuartile <= 4) {
+                    $currentQuartile = is_numeric($entry['metadata']['journalQuartile'] ?? null)
+                        ? (int) $entry['metadata']['journalQuartile']
+                        : null;
+                    if ($currentQuartile === null || $incomingQuartile < $currentQuartile) {
+                        $entry['metadata']['journalQuartile'] = $incomingQuartile;
+                    }
+                }
                 unset($entry);
             }
         }
@@ -11802,6 +11993,7 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
      * @param array<string,mixed> $postValidationRuleState
      * @param array<string,mixed>|null $processDetailsCollector
      * @param string $responseLanguage
+     * @param array<string,mixed> $openAlexFilters
      * @return array{allowedKeys: array<int,string>, hydratedByKey: array<string,array<string,mixed>>, warnings: array<int,string>, diagnostics: array<string,mixed>}
      */
     function muginPublicSearchBuildAllowedCandidateKeys(
@@ -11812,7 +12004,8 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
         ?callable $progressCallback = null,
         array $postValidationRuleState = [],
         ?array &$processDetailsCollector = null,
-        string $responseLanguage = 'da'
+        string $responseLanguage = 'da',
+        array $openAlexFilters = []
     ): array {
         $trustedSet = array_fill_keys(muginPublicSearchDedupeStrings($trustedPmids, 'muginPublicSearchNormalizePmid'), true);
         $allowedKeys = [];
@@ -11827,9 +12020,6 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
         $semanticScholarFallbackCount = 0;
         $excludedExamples = [];
         $hydratedHardFilters = $hardFilters;
-        // Language is applied via PubMed hardFilterQuery + OpenAlex retrieval
-        // filters in the legacy flow — not on the DOI hydration pass.
-        $hydratedHardFilters['languages'] = [];
         if (
             !empty($postValidationRuleState['activeRules'])
             || !empty($postValidationRuleState['ruleGroups'])
@@ -11974,7 +12164,10 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
                 if (!is_array($work)) {
                     continue;
                 }
-                if (!muginPublicSearchCandidateMatchesHydratedFilters($entry['candidate'], $work, $hydratedHardFilters)) {
+                if (
+                    !muginPublicSearchCandidateMatchesHydratedFilters($entry['candidate'], $work, $hydratedHardFilters)
+                    || !muginPublicSearchCandidateMatchesOpenAlexDoiFilters($work, $hardFilters, $openAlexFilters)
+                ) {
                     $doiRejectedByFilterCount++;
                     if (count($excludedExamples) < 10) {
                         $excludedExamples[] = [
@@ -12145,6 +12338,7 @@ if (!function_exists('muginPublicSearchBuildHybridOrderedResultRefs')) {
      * @param array<string,mixed> $postValidationRuleState
      * @param array<string,mixed>|null $processDetailsCollector
      * @param string $responseLanguage
+     * @param array<string,mixed> $openAlexFilters
      * @return array<string,mixed>
      */
     function muginPublicSearchBuildHybridOrderedResultRefs(
@@ -12156,7 +12350,8 @@ if (!function_exists('muginPublicSearchBuildHybridOrderedResultRefs')) {
         ?callable $progressCallback = null,
         array $postValidationRuleState = [],
         ?array &$processDetailsCollector = null,
-        string $responseLanguage = 'da'
+        string $responseLanguage = 'da',
+        array $openAlexFilters = []
     ): array {
         $orderedPmids = [];
         foreach ($orderedCandidates as $candidate) {
@@ -12214,7 +12409,8 @@ if (!function_exists('muginPublicSearchBuildHybridOrderedResultRefs')) {
             $progressCallback,
             $postValidationRuleState,
             $processDetailsCollector,
-            $responseLanguage
+            $responseLanguage,
+            $openAlexFilters
         );
         $allowedSet = array_fill_keys($allowed['allowedKeys'], true);
         $matchedPmidSet = array_fill_keys((array) $orderedSearch['orderedIds'], true);
@@ -12628,6 +12824,11 @@ if (!function_exists('muginPublicSearchAdaptUnifiedCandidateToLegacyShape')) {
             's2FieldsOfStudy' => muginPublicSearchNormalizeSimpleList(
                 $enriched['s2FieldsOfStudy'] ?? ($previousMetadata['s2FieldsOfStudy'] ?? [])
             ),
+            'fullTextUrl' => trim((string) ($enriched['fullTextUrl'] ?? ($previousMetadata['fullTextUrl'] ?? ''))),
+            'journalQuartile' => (isset($enriched['journalQuartile']) && is_numeric($enriched['journalQuartile'])
+                && (int) $enriched['journalQuartile'] >= 1 && (int) $enriched['journalQuartile'] <= 4)
+                ? (int) $enriched['journalQuartile']
+                : null,
         ];
         return $candidate;
     }
@@ -14249,7 +14450,7 @@ if (!function_exists('muginPublicSearchBuildApiResultFromPubMed')) {
             'citationCount' => $citationCount,
             'citationCountSource' => $citationCountSource,
             'isOpenAccess' => $isOpenAccess,
-            'openAccessUrl' => '',
+            'openAccessUrl' => trim((string) ($ssMetadata['fullTextUrl'] ?? '')),
             'isRetracted' => null,
             // Tillid/proveniens
             'trustedPmid' => $trusted,
@@ -14369,6 +14570,10 @@ if (!function_exists('muginPublicSearchBuildApiResultFromOpenAlex')) {
             $citationCountSource = 'semanticScholar';
         }
 
+        $openAccessUrl = trim((string) ($openAccess['oa_url'] ?? ''));
+        if ($openAccessUrl === '') {
+            $openAccessUrl = trim((string) ($ssMetadata['fullTextUrl'] ?? ''));
+        }
         $isRetractedRaw = $work['is_retracted'] ?? null;
         $openAlexId = trim((string) ($candidateInfo['openAlexId'] ?? ''));
         if ($openAlexId === '' && function_exists('muginNormalizeOpenAlexLookupId')) {
@@ -14426,7 +14631,7 @@ if (!function_exists('muginPublicSearchBuildApiResultFromOpenAlex')) {
             'citationCount' => $citationCount,
             'citationCountSource' => $citationCountSource,
             'isOpenAccess' => $isOpenAccess,
-            'openAccessUrl' => trim((string) ($openAccess['oa_url'] ?? '')),
+            'openAccessUrl' => $openAccessUrl,
             'isRetracted' => is_bool($isRetractedRaw) ? $isRetractedRaw : null,
             // Tillid/proveniens
             'trustedPmid' => false,
@@ -14577,21 +14782,23 @@ if (!function_exists('muginPublicSearchTryClosePrefetchedSource')) {
             if ($query === '') {
                 return false;
             }
-            if ($httpOk && $decoded !== null) {
-                $count = count((array) ($decoded['results'] ?? []));
-                $cap = max(1, muginPublicSearchGetSemanticSourceLimit('openAlex', 50));
-                $deferred = false;
-                foreach (['language', 'sourceType', 'workType', 'publicationYear'] as $filterField) {
-                    $value = $filters[$filterField] ?? null;
-                    if ((is_array($value) && !empty($value)) || (!is_array($value) && trim((string) $value) !== '')) {
-                        $deferred = true;
-                        break;
-                    }
+            if (!$httpOk || $decoded === null) {
+                return false;
+            }
+            $usable = 0;
+            foreach ((array) ($decoded['results'] ?? []) as $work) {
+                if (!is_array($work)) {
+                    continue;
                 }
-                $needsKeyword = $deferred || $count === 0 || $count >= $cap;
-                if ($needsKeyword && !isset($sourceResults['openAlex_keyword'])) {
-                    return false;
+                $ids = isset($work['ids']) && is_array($work['ids']) ? $work['ids'] : [];
+                $pmid = trim((string) ($work['pmid'] ?? ($ids['pmid'] ?? '')));
+                $doi = trim((string) ($work['doi'] ?? ($ids['doi'] ?? '')));
+                if ($pmid !== '' || $doi !== '') {
+                    $usable++;
                 }
+            }
+            if ($usable === 0) {
+                return false;
             }
         } elseif ($sourceKey === 'elicit') {
             if ($query === '') {
@@ -14788,8 +14995,8 @@ if (!function_exists('muginPublicSearchPrefetchInitialSourceRequests')) {
                 (string) ($resolvedQueries['hardFilterQuery'] ?? '')
             );
             if ($pubmedQuery !== '') {
-                muginThrottleNlmRequests(5);
-                $searchLimit = muginPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 200);
+                muginThrottleNlmRequests(muginNlmRequestsPerSecond($domain));
+                $searchLimit = muginPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 400);
                 $baseUrl = function_exists('muginGetNlmBaseUrl')
                     ? muginGetNlmBaseUrl($domain)
                     : (defined('NLM_BASE_URL') ? NLM_BASE_URL : 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils');
@@ -14849,40 +15056,14 @@ if (!function_exists('muginPublicSearchPrefetchInitialSourceRequests')) {
             if ($query !== '') {
                 $filters = (array) ($sourceQueryPlan['openAlex']['filters'] ?? []);
                 $apiKeyOverride = (string) ($clientSourceApiKeys['openAlex'] ?? '');
-                // One OpenAlex throttle for the whole multi wave (semantic + optional keyword).
                 muginThrottleRequestRate('openalex', 1);
-                // Semantic primary defers language/source/work/year filters.
-                // isOa is applied immediately because it is a simple boolean filter.
-                $openAlexSemanticFilters = [];
-                if (muginPublicSearchNormalizeElicitBooleanValue($filters['isOa'] ?? ($filters['is_oa'] ?? null)) === true) {
-                    $openAlexSemanticFilters['isOa'] = true;
-                }
                 $namedRequests['openAlex'] = muginPublicSearchBuildOpenAlexSourceRequestSpec(
                     $query,
-                    $openAlexSemanticFilters,
+                    $filters,
                     $domain,
                     $apiKeyOverride,
                     'semantic'
                 );
-                $hasDeferredFilters = false;
-                foreach (['language', 'sourceType', 'workType', 'publicationYear'] as $filterField) {
-                    $value = $filters[$filterField] ?? null;
-                    if ((is_array($value) && !empty($value)) || (!is_array($value) && trim((string) $value) !== '')) {
-                        $hasDeferredFilters = true;
-                        break;
-                    }
-                }
-                // Prefetch keyword supplement in the same multi wave when legacy
-                // would start it in parallel with deferred semantic filters.
-                if ($hasDeferredFilters) {
-                    $namedRequests['openAlex_keyword'] = muginPublicSearchBuildOpenAlexSourceRequestSpec(
-                        $query,
-                        $filters,
-                        $domain,
-                        $apiKeyOverride,
-                        'keyword'
-                    );
-                }
             }
         }
         if (in_array('elicit', $sources, true)) {
@@ -15627,7 +15808,7 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                 [
                     'db' => 'pubmed',
                     'term' => $pubmedQueryText,
-                    'retmax' => muginPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 200),
+                    'retmax' => muginPublicSearchGetSemanticSourceLimit('pubmedBestMatch', 400),
                     'retstart' => 0,
                     'retmode' => 'json',
                     'sort' => 'relevance',
@@ -15854,7 +16035,8 @@ if (!function_exists('muginPublicSearchRunSearch')) {
             $progressCallback,
             (array) ($resolvedQueries['postValidationRuleState'] ?? []),
             $collector,
-            (string) ($request['responseOptions']['language'] ?? 'da')
+            (string) ($request['responseOptions']['language'] ?? 'da'),
+            (array) (($request['sourceFilters']['openAlex'] ?? []))
         );
         $warnings = muginPublicSearchDedupeStrings(array_merge($warnings, (array) ($hybridOrdering['warnings'] ?? [])));
         $resultRefs = (array) ($hybridOrdering['refs'] ?? []);

@@ -10,10 +10,10 @@
  * Usage:
  *   node scripts/explore-openalex-nondoi.js            # default canary set
  *   node scripts/explore-openalex-nondoi.js --limit=50 # override per_page (default: 25)
- *   node scripts/explore-openalex-nondoi.js --mailto=you@example.org
+ *   node scripts/explore-openalex-nondoi.js --api-key=YOUR_KEY
  *
- * OpenAlex requires a mailto for the polite pool. Pass via --mailto or the
- * OPENALEX_MAILTO environment variable.
+ * OpenAlex ignores mailto. The API key is what the quota uses. The request
+ * stays on search.semantic. Pass the key via --api-key or OPENALEX_API_KEY.
  */
 
 const args = process.argv.slice(2);
@@ -24,6 +24,7 @@ function getArg(name, fallback = "") {
 }
 
 const LIMIT = Math.max(1, Math.min(200, parseInt(getArg("limit", "25"), 10) || 25));
+const API_KEY = getArg("api-key", process.env.OPENALEX_API_KEY || "");
 const MAILTO = getArg("mailto", process.env.OPENALEX_MAILTO || "");
 
 const CANARY_QUERIES = [
@@ -72,6 +73,7 @@ async function fetchCanary(query) {
     select:
       "id,display_name,doi,ids,type,type_crossref,publication_year,language,primary_location,abstract_inverted_index,authorships,is_retracted",
   });
+  if (API_KEY) params.set("api_key", API_KEY);
   if (MAILTO) params.set("mailto", MAILTO);
   const url = `https://api.openalex.org/works?${params.toString()}`;
   const response = await fetch(url, {
@@ -117,7 +119,7 @@ async function main() {
     console.error("Error: global fetch is required (Node 18+)");
     process.exit(1);
   }
-  console.log(`OpenAlex non-DOI exploration (limit=${LIMIT}${MAILTO ? `, mailto=${MAILTO}` : ""})\n`);
+  console.log(`OpenAlex non-DOI exploration (limit=${LIMIT}, search.semantic${API_KEY ? ", api_key=set" : ", api_key=missing"})\n`);
 
   const summary = [];
   for (const canary of CANARY_QUERIES) {

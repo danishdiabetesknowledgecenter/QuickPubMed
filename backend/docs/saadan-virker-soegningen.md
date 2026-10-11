@@ -112,7 +112,7 @@ Det her er de smarte dommere vi har tilføjet:
 **Artikel-type-dommeren** (pubTypeTier + klassifikator)
 - Hver artikel får en etiket (en "tier") ud fra sine signaler — det gør en lille klassifikator-funktion i baggrunden.
 - Etiketterne er: `guideline_verified` (bekræftet retningslinje), `guideline_candidate` (muligt retningslinje), `systematic_review_or_meta`, `clinical_trial`, `review`, `research_article`, `preprint`, `report_verified`, `book_chapter`, `dissertation`, `other`, eller `excluded` (fx errata som sorteres helt væk).
-- Klassifikatoren bruger flere signaler: hvem udgiveren er (er det WHO, NICE, CDC, Sundhedsstyrelsen?), hvad PubMed/Semantic Scholar kalder artiklen, og hvad OpenAlex kalder "workType". Hvis signalerne peger hver sin vej, giver klassifikatoren en lav `confidence` og dommeren lægger mindre vægt på beslutningen.
+- Klassifikatoren bruger flere signaler: hvem udgiveren er (er det WHO, NICE, CDC, Sundhedsstyrelsen?), hvad PubMed, Semantic Scholar og Elicit kalder artiklen, og hvad OpenAlex kalder "workType". Elicit-tagget `RCT` tæller som et randomiseret forsøg. Hvis signalerne peger hver sin vej, giver klassifikatoren en lav `confidence` og dommeren lægger mindre vægt på beslutningen.
 - Nogle artikel-typer er mere værd end andre i medicin: retningslinjer, systematiske reviews og meta-analyser er "guld-standarden". Preprints, dissertationer og bogkapitler får færre point — men de bliver stadig vist, bare længere nede på listen.
 
 **Data-kvalitets-dommeren** (dataQualityMultiplier)
@@ -144,7 +144,8 @@ Det her er de smarte dommere vi har tilføjet:
 
 **Autoritets-dommeren** (authority)
 - Kigger på forfatterens h-index og tidsskriftets citationer
-- **Denne dommer er slået fra som standard**, fordi h-index favoriserer ældre forskere og store forskningsområder urimeligt
+- Hvis OpenAlex ikke kender tidsskriftets citatniveau, kan Elicits tidsskriftskvartil give et lille løft: de bedste 25 procent (Q1) lidt mere end de næste 25 procent (Q2). De nederste halvdel ændrer ikke scoren, og løftet lægges ikke oven i et tidsskrift, OpenAlex allerede har vurderet
+- **Denne dommer er slået fra som standard**, fordi h-index favoriserer ældre forskere og store forskningsområder urimeligt. Kvartil-løftet er også slået fra, så længe den indstilling står på neutral
 
 ## Del 5: Hvordan regnes pointene sammen?
 

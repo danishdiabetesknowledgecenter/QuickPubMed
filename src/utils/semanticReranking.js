@@ -221,6 +221,8 @@ function createEnrichedRecord() {
     language: "",
     publisher: "",
     venue: "",
+    journalQuartile: null,
+    fullTextUrl: "",
   };
 }
 
@@ -389,6 +391,17 @@ function mergeEnrichedFromCandidate(enriched, candidate) {
   const journalId = String(metadata.journalSourceId || "").trim();
   if (journalId && !enriched.journalSourceId) {
     enriched.journalSourceId = journalId;
+  }
+
+  const quartile = toPresentFiniteInt(metadata.journalQuartile);
+  if (quartile !== null && quartile >= 1 && quartile <= 4) {
+    if (enriched.journalQuartile === null || quartile < enriched.journalQuartile) {
+      enriched.journalQuartile = quartile;
+    }
+  }
+  const fullTextUrl = String(metadata.fullTextUrl || "").trim();
+  if (fullTextUrl && !enriched.fullTextUrl) {
+    enriched.fullTextUrl = fullTextUrl;
   }
 
   const authorIds = Array.isArray(metadata.authorIds) ? metadata.authorIds : [];
@@ -960,15 +973,21 @@ function computeAuthorityMultiplier(enriched, rerankConfig) {
   }
   const authorHIndex = toFiniteInt(enriched?.authorityAuthors?.maxHIndex);
   const journalMean = toFiniteNumber(enriched?.authorityJournal?.meanCitedness);
-  if (authorHIndex === null && journalMean === null) {
+  const quartile = toPresentFiniteInt(enriched?.journalQuartile);
+  const quartileFactor = journalMean === null && quartile === 1 ? 0.02 : journalMean === null && quartile === 2 ? 0.01 : 0;
+  if (authorHIndex === null && journalMean === null && quartileFactor === 0) {
     return { multiplier: 1.0, components: {} };
   }
   const authorFactor =
     authorHIndex !== null ? (Math.log1p(Math.max(0, authorHIndex)) / Math.log(10)) * 0.04 : 0;
-  const journalFactor = journalMean !== null ? Math.log1p(Math.max(0, journalMean)) * 0.04 : 0;
+  const journalFactor = journalMean !== null ? Math.log1p(Math.max(0, journalMean)) * 0.04 : quartileFactor;
   return {
     multiplier: clampTo(1.0 + authorFactor + journalFactor, clamp),
-    components: { authorHIndex, journalMean },
+    components: {
+      authorHIndex,
+      journalMean,
+      journalQuartile: journalMean === null ? quartile : null,
+    },
   };
 }
 

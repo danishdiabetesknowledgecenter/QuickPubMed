@@ -509,6 +509,189 @@ function muginGetNlmApiKey(?string $domain = null): string
 }
 
 /**
+ * NCBI allows 10 requests/second with an API key and 3 without.
+ *
+ * @param string|null $domain
+ * @return int
+ */
+function muginNlmRequestsPerSecond(?string $domain = null): int
+{
+    return muginGetNlmApiKey($domain) !== '' ? 10 : 3;
+}
+
+/**
+ * Map an Elicit study-type tag onto a publication type the classifier already matches.
+ * Unknown tags, including Longitudinal, are kept as given.
+ *
+ * @param mixed $tag
+ * @return string
+ */
+function muginMapElicitStudyTypeTagToPublicationType($tag): string
+{
+    $raw = trim((string) $tag);
+    if ($raw === '') {
+        return '';
+    }
+    $compact = strtolower((string) preg_replace('/[\s_-]+/', '', $raw));
+    if ($compact === 'rct' || $compact === 'randomizedcontrolledtrial' || $compact === 'randomisedcontrolledtrial') {
+        return 'Randomized Controlled Trial';
+    }
+    if ($compact === 'systematicreview') {
+        return 'Systematic Review';
+    }
+    if ($compact === 'metaanalysis') {
+        return 'Meta-Analysis';
+    }
+    if ($compact === 'review') {
+        return 'Review';
+    }
+    return $raw;
+}
+
+/**
+ * @param mixed $tags
+ * @return array<int,string>
+ */
+function muginMapElicitStudyTypeTagsToPublicationTypes($tags): array
+{
+    $values = is_array($tags) ? $tags : [$tags];
+    $seen = [];
+    $output = [];
+    foreach ($values as $tag) {
+        $mapped = muginMapElicitStudyTypeTagToPublicationType($tag);
+        if ($mapped === '') {
+            continue;
+        }
+        $key = strtolower($mapped);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $output[] = $mapped;
+    }
+    return $output;
+}
+
+/**
+ * @param mixed $value
+ * @return int|null
+ */
+function muginNormalizeElicitJournalQuartile($value): ?int
+{
+    if (!is_numeric($value)) {
+        return null;
+    }
+    $quartile = (int) $value;
+    if ($quartile < 1 || $quartile > 4) {
+        return null;
+    }
+    return $quartile;
+}
+
+/**
+ * @param mixed $value
+ * @return string
+ */
+function muginNormalizeElicitFullTextUrl($value): string
+{
+    $url = trim((string) $value);
+    if ($url === '' || preg_match('#^https?://#i', $url) !== 1) {
+        return '';
+    }
+    return $url;
+}
+
+/**
+ * Ranking signals from one Elicit paper, including a nested `paper` object.
+ *
+ * @param array<string,mixed> $paper
+ * @return array{publicationTypes: array<int,string>, journalQuartile: int|null, fullTextUrl: string}
+ */
+function muginExtractElicitPaperRankingSignals(array $paper): array
+{
+    $nested = isset($paper['paper']) && is_array($paper['paper']) ? $paper['paper'] : [];
+    $tags = [];
+    foreach ([
+        $paper['publication_types'] ?? null,
+        $nested['publication_types'] ?? null,
+        $paper['studyTypeTags'] ?? null,
+        $nested['studyTypeTags'] ?? null,
+    ] as $list) {
+        if (!is_array($list)) {
+            continue;
+        }
+        foreach ($list as $tag) {
+            $tags[] = $tag;
+        }
+    }
+
+    return [
+        'publicationTypes' => muginMapElicitStudyTypeTagsToPublicationTypes($tags),
+        'journalQuartile' => muginNormalizeElicitJournalQuartile($paper['journalQuartile'] ?? ($nested['journalQuartile'] ?? null)),
+        'fullTextUrl' => muginNormalizeElicitFullTextUrl($paper['fullTextUrl'] ?? ($nested['fullTextUrl'] ?? '')),
+    ];
+}
+
+/**
+ * @param mixed $warnings
+ * @return string
+ */
+function muginFormatElicitSearchWarnings($warnings): string
+{
+    if (!is_array($warnings)) {
+        return '';
+    }
+    $messages = [];
+    foreach ($warnings as $warning) {
+        if (is_string($warning)) {
+            $message = trim($warning);
+        } elseif (is_array($warning)) {
+            $message = trim((string) ($warning['message'] ?? ''));
+        } else {
+            $message = '';
+        }
+        if ($message !== '' && !in_array($message, $messages, true)) {
+            $messages[] = $message;
+        }
+    }
+    return implode(' | ', $messages);
+}
+
+/**
+ * Clip a query at the upstream request boundary. The displayed query stays intact.
+ *
+ * @param string $query
+ * @param int $maxLength
+ * @return string
+ */
+function muginClipExternalSearchQuery(string $query, int $maxLength = 2000): string
+{
+    if ($maxLength < 1) {
+        return '';
+    }
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+        if (mb_strlen($query, 'UTF-8') <= $maxLength) {
+            return $query;
+        }
+        return mb_substr($query, 0, $maxLength, 'UTF-8');
+    }
+    if (strlen($query) <= $maxLength) {
+        return $query;
+    }
+    return substr($query, 0, $maxLength);
+}
+
+/**
+ * Fields the rerank layer reads from iCite. Omits citation and reference lists.
+ *
+ * @return string
+ */
+function muginICiteFieldList(): string
+{
+    return 'pmid,relative_citation_ratio,nih_percentile,is_clinical,cited_by_clin,apt,field_citation_rate';
+}
+
+/**
  * Resolve NLM email for domain with default fallback.
  *
  * @param string|null $domain
@@ -1252,7 +1435,6 @@ function muginHttpRequest(string $url, array $options = []): array
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = (string) (curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?? '');
         $error = curl_errno($ch) ? (string) curl_error($ch) : '';
-        curl_close($ch);
 
         if ($responseBody === false) {
             $responseBody = '';
@@ -1470,7 +1652,6 @@ function muginHttpRequestMulti(array $namedRequests, ?callable $onRequestComplet
         }
         $error = curl_error($ch);
         curl_multi_remove_handle($multiHandle, $ch);
-        curl_close($ch);
 
         $results[$name] = [
             'ok' => $error === '' && $httpStatus > 0,

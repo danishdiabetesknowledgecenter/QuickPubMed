@@ -407,10 +407,19 @@ $workTypes = muginNormalizeOpenAlexEnumFilters(
         'retraction' => 'retraction',
         'standard' => 'standard',
         'supplementarymaterials' => 'supplementary-materials',
+        'conferencepaper' => 'conference-paper',
+        'conferenceabstract' => 'conference-abstract',
     ]
 );
 $publicationYearFilter = muginNormalizeOpenAlexPublicationYearFilter(
     $params['publicationYear'] ?? ($params['publication_year'] ?? '')
+);
+$studyDesigns = muginNormalizeOpenAlexEnumFilters(
+    $params['studyDesigns'] ?? ($params['study_designs'] ?? []),
+    [
+        'randomizedcontrolledtrial' => 'randomized-controlled-trial',
+        'systematicreview' => 'systematic-review',
+    ]
 );
 $rawIsOa = $params['isOa'] ?? ($params['is_oa'] ?? null);
 $isOaFilter = null;
@@ -447,12 +456,13 @@ if ($query === '') {
     exit;
 }
 
+$openAlexQuery = $searchMode === 'semantic' ? muginClipExternalSearchQuery($query, 2000) : $query;
 $requestParams = [
-    $searchMode === 'keyword' ? 'search' : 'search.semantic' => $query,
+    $searchMode === 'keyword' ? 'search.title_abstract_keywords' : 'search.semantic' => $openAlexQuery,
     'per_page' => $limit,
     'select' => 'id,display_name,doi,ids,publication_year,publication_date,biblio,relevance_score,type,type_crossref,primary_location,fwci,cited_by_count,counts_by_year,is_retracted,open_access,primary_topic,topics,keywords,authorships,abstract_inverted_index,language',
 ];
-if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '' || $isOaFilter === true) {
+if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '' || $isOaFilter === true || !empty($studyDesigns)) {
     $filterParts = [];
     if (!empty($languageFilters)) {
         $filterParts[] = 'language:' . implode('|', $languageFilters);
@@ -469,7 +479,13 @@ if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $p
     if ($isOaFilter === true) {
         $filterParts[] = 'open_access.is_oa:true';
     }
+    foreach ($studyDesigns as $studyDesign) {
+        $filterParts[] = 'study_designs.id:' . $studyDesign;
+    }
     $requestParams['filter'] = implode(',', $filterParts);
+}
+if ($searchMode === 'keyword') {
+    $requestParams['rerank'] = 'true';
 }
 $openAlexApiKey = muginGetOpenAlexApiKey($domain);
 if ($openAlexApiKey !== '') {
@@ -482,9 +498,8 @@ if ($openAlexEmail !== '') {
 
 // OpenAlex search.semantic er dokumenteret begrænset til 1 request/sek:
 // https://developers.openalex.org/guides/searching#semantic-search-beta
-// Keyword-søgning har ikke samme restriktion, men da keyword-supplementet nu kan
-// startes parallelt med det semantiske kald (deferred filtre), paces keyword-mode
-// let i sit eget namespace, så samtidige requests ikke giver bursts mod OpenAlex.
+// Keyword-søgning paces i sit eget namespace, så et nødkald ikke deler
+// det semantiske loft på ét kald i sekundet.
 if ($searchMode === 'semantic') {
     muginThrottleRequestRate('openalex_semantic', 1);
 } else {

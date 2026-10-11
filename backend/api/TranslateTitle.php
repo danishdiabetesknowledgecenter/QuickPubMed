@@ -269,7 +269,6 @@ $curlStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
 if (empty($openaiRequest['stream']) && $curlError === '' && $curlResult !== false) {
     if ($curlStatus < 200 || $curlStatus >= 300) {
-        curl_close($ch);
         $respondOpenAiError('OpenAI request failed', 502, [
             'status' => $curlStatus,
             'details' => substr((string) $curlResult, 0, 500),
@@ -278,7 +277,6 @@ if (empty($openaiRequest['stream']) && $curlError === '' && $curlResult !== fals
 
     $decodedResponse = json_decode((string) $curlResult, true);
     if (!is_array($decodedResponse)) {
-        curl_close($ch);
         $respondOpenAiError('Invalid OpenAI response', 502, [
             'status' => $curlStatus,
             'raw' => substr((string) $curlResult, 0, 500),
@@ -286,7 +284,6 @@ if (empty($openaiRequest['stream']) && $curlError === '' && $curlResult !== fals
     }
 
     $responseText = $extractResponseText($decodedResponse);
-    curl_close($ch);
     if ($responseText === '') {
         $respondOpenAiError('OpenAI response did not contain text output', 502, [
             'status' => $curlStatus,
@@ -299,7 +296,6 @@ if (empty($openaiRequest['stream']) && $curlError === '' && $curlResult !== fals
 }
 
 if (($curlResult === false || $curlError !== '') && !$hasStreamedText && trim($sseBuffer) === '') {
-    curl_close($ch);
     $respondOpenAiError('OpenAI request failed', 502, [
         'status' => $curlStatus,
         'details' => $curlError !== '' ? $curlError : 'OpenAI request failed',
@@ -332,5 +328,3 @@ if ($curlStatus > 0 && ($curlStatus < 200 || $curlStatus >= 300) && !$hasStreame
 if ($curlError !== '') {
     echo "\n\nError: " . curl_error($ch);
 }
-
-curl_close($ch);

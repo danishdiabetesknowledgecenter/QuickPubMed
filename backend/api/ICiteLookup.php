@@ -51,6 +51,7 @@ function muginICiteLocalDevProxyRequest(array $pmids): array
     $hosts = ['localhost', '127.0.0.1'];
     $queryString = http_build_query([
         'pmids' => implode(',', $pmids),
+        'fl' => muginICiteFieldList(),
     ]);
     $errors = [];
     foreach ($hosts as $host) {
@@ -92,6 +93,7 @@ function muginICiteFetchBatch(array $pmids): array
 
     $url = 'https://icite.od.nih.gov/api/pubs?' . http_build_query([
         'pmids' => implode(',', $pmids),
+        'fl' => muginICiteFieldList(),
     ]);
     $headers = ['Accept: application/json'];
 

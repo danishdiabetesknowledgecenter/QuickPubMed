@@ -5059,6 +5059,8 @@
           retraction: "retraction",
           standard: "standard",
           supplementarymaterials: "supplementary-materials",
+          conferencepaper: "conference-paper",
+          conferenceabstract: "conference-abstract",
         };
         return aliasMap[compact] || "";
       },
@@ -5215,6 +5217,13 @@
                 this.normalizeStringArray(rawFilters.workType).map((value) =>
                   this.normalizeOpenAlexWorkTypeValue(value)
                 ),
+                (value) => value
+              ),
+              publicationYear: this.normalizeOpenAlexPublicationYearFilterValue(rawFilters.publicationYear),
+              studyDesigns: this.dedupeNormalizedValues(
+                this.normalizeStringArray(rawFilters.studyDesigns)
+                  .map((value) => this.normalizeOpenAlexStudyDesignId(value))
+                  .filter(Boolean),
                 (value) => value
               ),
               ...(openAlexIsOa !== null ? { isOa: openAlexIsOa } : {}),
@@ -5633,7 +5642,7 @@
           if (normalized === "journal") {
             workTypeValues.push("article");
           } else if (normalized === "conference") {
-            sourceTypeValues.push("conference");
+            workTypeValues.push("conference-paper", "conference-abstract");
           } else if (normalized === "preprint") {
             workTypeValues.push("preprint");
           }
@@ -5660,6 +5669,38 @@
           workTypes.map((value) => this.normalizeOpenAlexWorkTypeValue(value)),
           (value) => value
         );
+      },
+      normalizeOpenAlexStudyDesignId(value) {
+        const compact = String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[\s_-]+/g, "");
+        if (compact === "systematicreview") return "systematic-review";
+        if (compact === "randomizedcontrolledtrial") return "randomized-controlled-trial";
+        return "";
+      },
+      mapHardFiltersToOpenAlexStudyDesigns(publicationTypes = [], studyDesigns = []) {
+        const output = [];
+        (Array.isArray(publicationTypes) ? publicationTypes : []).forEach((value) => {
+          const normalized = String(value || "").trim().toLowerCase();
+          if (normalized === "systematic review" || normalized === "meta-analysis") {
+            output.push("systematic-review");
+          }
+        });
+        (Array.isArray(studyDesigns) ? studyDesigns : []).forEach((value) => {
+          const compact = String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[\s_-]+/g, "");
+          if (
+            compact === "randomizedcontrolledtrial" ||
+            compact === "randomisedcontrolledtrial" ||
+            compact === "rct"
+          ) {
+            output.push("randomized-controlled-trial");
+          }
+        });
+        return this.dedupeNormalizedValues(output, (value) => value);
       },
       mapSourceFormatsToSemanticScholarPublicationTypes(sourceFormats = []) {
         const output = [];
@@ -5917,6 +5958,20 @@
         const openAlexIsOa = this.normalizeElicitBooleanValue(
           payloadOpenAlexFilters.isOa ?? payloadOpenAlexFilters.is_oa
         );
+        const fallbackOpenAlexStudyDesigns = this.mapHardFiltersToOpenAlexStudyDesigns(
+          hardFilters.publicationTypes,
+          hardFilters.studyDesigns
+        );
+        const configuredOpenAlexStudyDesigns = this.dedupeNormalizedValues(
+          (Array.isArray(payloadOpenAlexFilters.studyDesigns) ? payloadOpenAlexFilters.studyDesigns : [])
+            .map((value) => this.normalizeOpenAlexStudyDesignId(value))
+            .filter(Boolean),
+          (value) => value
+        );
+        const openAlexStudyDesigns =
+          configuredOpenAlexStudyDesigns.length > 0
+            ? configuredOpenAlexStudyDesigns
+            : fallbackOpenAlexStudyDesigns;
         const semanticScholarContextQuery = this.normalizeSemanticQueryText(
           (Array.isArray(sourceSpecificContext.semanticScholar)
             ? sourceSpecificContext.semanticScholar
@@ -6018,6 +6073,7 @@
               sourceType: openAlexSourceTypes,
               workType: openAlexWorkTypes,
               publicationYear: openAlexPublicationYear,
+              studyDesigns: openAlexStudyDesigns,
               ...(openAlexIsOa !== null ? { isOa: openAlexIsOa } : {}),
             },
           },
@@ -6473,7 +6529,7 @@
         );
       },
       getPubMedBestMatchSourceLimit() {
-        const defaultLimit = this.getConfiguredSemanticSourceLimit("pubmedBestMatch", 200);
+        const defaultLimit = this.getConfiguredSemanticSourceLimit("pubmedBestMatch", 400);
         const strategyKey = this.hasSelectedNonPubMedSemanticSource()
           ? "pubmedBestMatchMultiSource"
           : "pubmedBestMatchPubmedOnly";
@@ -6549,6 +6605,12 @@
             publicationTypes: Array.isArray(metadata.publicationTypes)
               ? metadata.publicationTypes.map((value) => String(value || "").trim()).filter(Boolean)
               : [],
+            journalQuartile: Number.isFinite(Number(metadata.journalQuartile))
+              && Number(metadata.journalQuartile) >= 1
+              && Number(metadata.journalQuartile) <= 4
+              ? Math.round(Number(metadata.journalQuartile))
+              : null,
+            fullTextUrl: String(metadata.fullTextUrl || "").trim(),
             abstract,
             hasAbstract: metadata.hasAbstract === true || abstract !== "",
             abstractLength: Number.isFinite(Number(metadata.abstractLength))
@@ -8034,12 +8096,14 @@
         return options?.searchMode === "keyword" ? "keyword" : "semantic";
       },
       getOpenAlexSearchParamKey(searchMode = "semantic") {
-        return searchMode === "keyword" ? "search" : "search.semantic";
+        return searchMode === "keyword" ? "search.title_abstract_keywords" : "search.semantic";
       },
       buildOpenAlexBrowserProxyParams(query, options = {}) {
         const searchMode = this.getOpenAlexSearchMode(options);
         const params = new URLSearchParams();
-        params.set(this.getOpenAlexSearchParamKey(searchMode), String(query || "").trim());
+        const rawQuery = String(query || "").trim();
+        const requestQuery = searchMode === "semantic" ? Array.from(rawQuery).slice(0, 2000).join("") : rawQuery;
+        params.set(this.getOpenAlexSearchParamKey(searchMode), requestQuery);
         params.set(
           "per_page",
           String(options?.limit || this.getConfiguredSemanticSourceLimit("openAlex", DEFAULT_OPENALEX_LIMIT))
@@ -8069,8 +8133,16 @@
         if (isOaFilter) {
           filterParts.push("open_access.is_oa:true");
         }
+        const studyDesigns = Array.isArray(options?.studyDesigns) ? options.studyDesigns : [];
+        studyDesigns.forEach((studyDesign) => {
+          const normalized = this.normalizeOpenAlexStudyDesignId(studyDesign);
+          if (normalized) filterParts.push(`study_designs.id:${normalized}`);
+        });
         if (filterParts.length) {
           params.set("filter", filterParts.join(","));
+        }
+        if (searchMode === "keyword") {
+          params.set("rerank", "true");
         }
         return params;
       },
@@ -8391,7 +8463,7 @@
             publicationYear: publicationYearFilter !== "",
           }
         );
-        if (payload?.warning && hintedRetryFields.length > 0) {
+        if (searchMode !== "semantic" && payload?.warning && hintedRetryFields.length > 0) {
           for (const requestField of hintedRetryFields) {
             const retryAttempt = this.buildOpenAlexRequestRetryAttempt(requestPayload, activeContext, requestField);
             if (!retryAttempt) continue;
@@ -8443,6 +8515,9 @@
               workTypes: activeContext.workTypes,
               publicationYearFilter: activeContext.publicationYearFilter,
               isOa: activeContext.isOa === true,
+              studyDesigns: Array.isArray(activeRequestPayload.studyDesigns)
+                ? activeRequestPayload.studyDesigns
+                : [],
               searchMode,
             });
             const browserProxyRequest = Object.fromEntries(browserProxyParams.entries());
@@ -8467,6 +8542,9 @@
                   workTypes: activeContext.workTypes,
                   publicationYearFilter: activeContext.publicationYearFilter,
                   isOa: activeContext.isOa === true,
+                  studyDesigns: Array.isArray(activeRequestPayload.studyDesigns)
+                    ? activeRequestPayload.studyDesigns
+                    : [],
                   searchMode,
                 }),
               {
@@ -8575,25 +8653,15 @@
           sourceQueryPlan?.openAlex?.filters?.publicationYear || ""
         ).trim();
         const isOa = this.normalizeElicitBooleanValue(sourceQueryPlan?.openAlex?.filters?.isOa) === true;
-        const semanticDeferredRequestFields = [];
-        if (languageFilters.length > 0) {
-          semanticDeferredRequestFields.push("languages");
-        }
-        if (sourceTypes.length > 0) {
-          semanticDeferredRequestFields.push("sourceTypes");
-        }
-        if (workTypes.includes("article") || workTypes.length > 1) {
-          semanticDeferredRequestFields.push("workTypes");
-        }
-        const semanticLanguageFilters = semanticDeferredRequestFields.includes("languages")
-          ? []
-          : languageFilters;
-        const semanticSourceTypes = semanticDeferredRequestFields.includes("sourceTypes")
-          ? []
-          : sourceTypes;
-        const semanticWorkTypes = semanticDeferredRequestFields.includes("workTypes")
-          ? []
-          : workTypes;
+        const studyDesigns = this.dedupeNormalizedValues(
+          (Array.isArray(sourceQueryPlan?.openAlex?.filters?.studyDesigns)
+            ? sourceQueryPlan.openAlex.filters.studyDesigns
+            : []
+          )
+            .map((value) => this.normalizeOpenAlexStudyDesignId(value))
+            .filter(Boolean),
+          (value) => value
+        );
         const primarySearchMode = "semantic";
         const cacheKey = this.buildSemanticSourceCacheKey("openAlex", {
           query: requestQuery,
@@ -8604,17 +8672,19 @@
           workTypes,
           publicationYearFilter,
           isOa,
+          studyDesigns,
         });
         const cached = this.getCachedSemanticSourceResponse(cacheKey);
         const requestPayload = {
           query: requestQuery,
           limit: requestLimit,
           domain: this.currentDomain || "",
-          languages: semanticLanguageFilters,
-          sourceTypes: semanticSourceTypes,
-          workTypes: semanticWorkTypes,
+          languages: languageFilters,
+          sourceTypes,
+          workTypes,
           publicationYear: publicationYearFilter,
           isOa,
+          studyDesigns,
           searchMode: primarySearchMode,
         };
         const keywordFilteredRequestPayload = {
@@ -8626,6 +8696,7 @@
           workTypes,
           publicationYear: publicationYearFilter,
           isOa,
+          studyDesigns,
           searchMode: "keyword",
         };
         this.logSemanticSourceRequest("openAlex", {
@@ -8633,10 +8704,6 @@
           endpoint: "OpenAlexSearch.php",
           request: requestPayload,
           searchMode: primarySearchMode,
-          deferredFilters: this.buildOpenAlexDeferredRetryFilters(
-            { languageFilters, sourceTypes, workTypes, publicationYearFilter, isOa },
-            semanticDeferredRequestFields
-          ),
         });
         if (cached) {
           await this.logSearchFlowDebugSourceResultGroup("OpenAlex", requestPayload, cached, cached, {
@@ -8648,45 +8715,20 @@
             request: cached.request || requestPayload,
           };
         }
-        // When semantic filters are deferred we already know up front that a keyword
-        // supplement will be required, so start it in parallel with the semantic call
-        // instead of waiting for the semantic call to finish first. (requestOpenAlex-
-        // SearchPayload resolves with a warning payload on error and never rejects, so
-        // this promise is always safely consumed in the supplement block below.)
-        const semanticFiltersDeferred = semanticDeferredRequestFields.length > 0;
-        const deferredKeywordResultPromise = semanticFiltersDeferred
-          ? this.requestOpenAlexSearchPayload(
-              requestQuery,
-              { ...keywordFilteredRequestPayload, searchMode: "keyword" },
-              {
-                searchMode: "keyword",
-                languageFilters,
-                sourceTypes,
-                workTypes,
-                publicationYearFilter,
-                isOa,
-              }
-            )
-          : null;
+        const semanticFiltersDeferred = false;
         const semanticResult = await this.requestOpenAlexSearchPayload(requestQuery, requestPayload, {
           searchMode: primarySearchMode,
-          languageFilters: semanticLanguageFilters,
-          sourceTypes: semanticSourceTypes,
-          workTypes: semanticWorkTypes,
+          languageFilters,
+          sourceTypes,
+          workTypes,
           publicationYearFilter,
           isOa,
+          studyDesigns,
         });
         let payload = semanticResult.payload;
         const semanticCandidateCount = Array.isArray(payload?.candidates) ? payload.candidates.length : 0;
-        const semanticCapReached =
-          primarySearchMode === "semantic" &&
-          !payload?.warning &&
-          this.shouldSupplementOpenAlexSemanticResults(payload, requestLimit);
-        // Degraded-mode trigger: the upstream OpenAlex semantic endpoint periodically
-        // returns HTTP 4xx when its own embedding backend is unavailable. In that
-        // case we still want keyword-mode results instead of empty source output.
-        const semanticFailedCompletely =
-          primarySearchMode === "semantic" && Boolean(payload?.warning) && semanticCandidateCount === 0;
+        const semanticCapReached = false;
+        const semanticFailedCompletely = semanticCandidateCount === 0;
         let keywordSupplementAttempted = false;
         let keywordSupplementUsed = false;
         let keywordSupplementCandidates = 0;
@@ -8699,95 +8741,54 @@
           semanticCandidateCount,
           semanticWarning: String(payload?.warning || ""),
         });
-        if (semanticCapReached || semanticFailedCompletely || semanticFiltersDeferred) {
+        if (semanticFailedCompletely) {
           keywordSupplementAttempted = true;
           const keywordRequestPayload = {
             ...keywordFilteredRequestPayload,
             searchMode: "keyword",
           };
-          const triggerReason = semanticFailedCompletely
-            ? "semantic-failed"
-            : semanticFiltersDeferred
-              ? "semantic-filters-deferred"
-              : "semantic-cap-reached";
           this.logSemanticSourceRequest("openAlex", {
             transport: "network",
             endpoint: "OpenAlexSearch.php",
             request: keywordRequestPayload,
             searchMode: "keyword",
-            reason: triggerReason,
+            reason: "semantic-failed",
           });
-          console.info(
-            semanticFailedCompletely
-              ? "[OpenAlexFlow] Triggering keyword fallback because semantic search returned an error."
-              : semanticFiltersDeferred
-                ? "[OpenAlexFlow] Triggering keyword supplement because semantic filters were deferred."
-                : "[OpenAlexFlow] Triggering keyword supplement because semantic search reached OpenAlex's cap.",
+          console.info("[OpenAlexFlow] Triggering keyword fallback because semantic search returned no candidates.", {
+            query: requestQuery,
+            semanticCandidateCount,
+            semanticWarning: String(payload?.warning || ""),
+          });
+          const keywordResult = await this.requestOpenAlexSearchPayload(
+            requestQuery,
+            keywordRequestPayload,
             {
-              query: requestQuery,
-              semanticCap: OPENALEX_SEMANTIC_RESULT_CAP,
-              semanticCandidateCount,
-              semanticWarning: String(payload?.warning || ""),
+              searchMode: "keyword",
+              languageFilters,
+              sourceTypes,
+              workTypes,
+              publicationYearFilter,
+              isOa,
+              studyDesigns,
             }
           );
-          const keywordResult = deferredKeywordResultPromise
-            ? await deferredKeywordResultPromise
-            : await this.requestOpenAlexSearchPayload(
-                requestQuery,
-                keywordRequestPayload,
-                {
-                  searchMode: "keyword",
-                  languageFilters,
-                  sourceTypes,
-                  workTypes,
-                  publicationYearFilter,
-                  isOa,
-                }
-              );
           keywordSupplementRequest =
             keywordResult.activeRequestPayload && typeof keywordResult.activeRequestPayload === "object"
               ? keywordResult.activeRequestPayload
               : keywordRequestPayload;
           if (!keywordResult.payload?.warning) {
-            // When semantic completely failed the original payload is empty + has a warning.
-            // Replace it with the keyword payload so downstream code sees a clean payload
-            // without the stale warning. Otherwise, merge additively as before.
-            if (semanticFailedCompletely) {
-              payload = keywordResult.payload;
-              keywordSupplementCandidates = Array.isArray(payload?.candidates)
-                ? payload.candidates.length
-                : 0;
-            } else {
-              payload = this.mergeOpenAlexSearchPayloads(payload, keywordResult.payload);
-              keywordSupplementCandidates = Math.max(
-                0,
-                (Array.isArray(payload?.candidates) ? payload.candidates.length : 0) -
-                  semanticCandidateCount
-              );
-            }
+            payload = keywordResult.payload;
+            keywordSupplementCandidates = Array.isArray(payload?.candidates) ? payload.candidates.length : 0;
             keywordSupplementUsed = keywordSupplementCandidates > 0;
-            console.info(
-              semanticFailedCompletely
-                ? "[OpenAlexFlow] Used keyword fallback after semantic search error."
-                : semanticFiltersDeferred
-                  ? "[OpenAlexFlow] Added keyword supplement after deferring semantic filters."
-                  : "[OpenAlexFlow] Added keyword supplement after semantic result cap was reached.",
-              {
-                query: requestQuery,
-                semanticCandidates: semanticCandidateCount,
-                keywordSupplementCandidates,
-                mergedCandidates: Array.isArray(payload?.candidates) ? payload.candidates.length : 0,
-              }
-            );
+            console.info("[OpenAlexFlow] Used keyword fallback after semantic search returned no candidates.", {
+              query: requestQuery,
+              semanticCandidates: semanticCandidateCount,
+              keywordSupplementCandidates,
+            });
           }
         }
         const disabledRequestFields = this.dedupeNormalizedValues(
-          [
-            ...semanticDeferredRequestFields,
-            ...(Array.isArray(semanticResult.disabledRequestFields)
-              ? semanticResult.disabledRequestFields
-              : []),
-          ],
+          Array.isArray(semanticResult.disabledRequestFields) ? semanticResult.disabledRequestFields : [],
           (value) => String(value || "").trim()
         );
         this.logOpenAlexRequestSummary({
@@ -8817,15 +8818,13 @@
           disabledRequestFields.length > 0 ||
           (semanticFailedCompletely && keywordSupplementUsed);
         const fallbackReason =
-          semanticFiltersDeferred && !semanticFailedCompletely
-            ? "semantic-filter-supplement"
-            : disabledRequestFields.length > 0
-              ? "filters"
-              : semanticFailedCompletely && keywordSupplementUsed
-                ? "keyword"
-                : semanticResult.browserFallbackSucceeded === true
-                  ? "transport"
-                  : "";
+          disabledRequestFields.length > 0
+            ? "filters"
+            : semanticFailedCompletely && keywordSupplementUsed
+              ? "keyword"
+              : semanticResult.browserFallbackSucceeded === true
+                ? "transport"
+                : "";
         normalized.fallbackReason =
           fallbackReason;
         normalized.disabledRequestFields = disabledRequestFields;
@@ -8840,7 +8839,7 @@
           disabledRequestFields,
           semanticPrimaryUsed: primarySearchMode === "semantic",
           semanticFiltersDeferred,
-          keywordSupplementRole: semanticFiltersDeferred ? "filterSupplement" : "",
+          keywordSupplementRole: keywordSupplementAttempted ? "fallback" : "",
           keywordSupplementAttempted,
           keywordSupplementUsed,
           ...(keywordSupplementRequest ? { keywordSupplementRequest } : {}),

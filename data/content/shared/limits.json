@@ -1276,13 +1276,19 @@
                         "en": "Primarily limits to conference materials and conference-related publications in the semantic sources."
                     },
                     "searchStrings": {
-                        "narrow": [],
-                        "normal": [],
-                        "broad": []
+                        "narrow": [
+                            "\"Meeting Abstract\"[pt] OR \"Conference Proceedings\"[pt]"
+                        ],
+                        "normal": [
+                            "\"Meeting Abstract\"[pt] OR \"Conference Proceedings\"[pt]"
+                        ],
+                        "broad": [
+                            "\"Meeting Abstract\"[pt] OR \"Conference Proceedings\"[pt]"
+                        ]
                     },
                     "searchStringComment": {
-                        "dk": "",
-                        "en": ""
+                        "dk": "PubMed kan ikke filtrere på OpenAlex' kildetype conference. Artikler med PMID afgrænses derfor med de to publikationstyper, NLM bruger til konferencemateriale: Meeting Abstract er det enkelte mødeabstract, Conference Proceedings er den samlede konferenceudgivelse (tidligere Congress).",
+                        "en": "PubMed cannot filter on OpenAlex source type conference. PMID records are limited with the two NLM publication types for conference material: Meeting Abstract is the individual abstract, and Conference Proceedings is the collected conference publication (formerly Congress)."
                     },
                     "semanticConfig": {
                         "postValidation": {
@@ -1331,8 +1337,9 @@
                                 ]
                             },
                             "openAlex": {
-                                "sourceType": [
-                                    "conference"
+                                "workType": [
+                                    "conference-paper",
+                                    "conference-abstract"
                                 ]
                             }
                         },

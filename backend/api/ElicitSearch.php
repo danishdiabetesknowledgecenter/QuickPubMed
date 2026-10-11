@@ -80,7 +80,6 @@ function muginElicitHttpRequest(string $url, array $options = []): array
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = (string)(curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?? '');
         $error = curl_errno($ch) ? (string)curl_error($ch) : '';
-        curl_close($ch);
 
         if ($responseBody === false) {
             $responseBody = '';
@@ -770,7 +769,7 @@ if ($retracted !== '') {
     $filters['retracted'] = $retracted;
 }
 $requestPayload = [
-    'query' => $query,
+    'query' => muginClipExternalSearchQuery($query, 2000),
     'maxResults' => $limit,
     'corpus' => 'elicit',
     'searchMode' => 'semantic',
@@ -852,6 +851,7 @@ foreach ($papers as $index => $paper) {
         $dois[$doi] = true;
     }
 
+    $rankingSignals = muginExtractElicitPaperRankingSignals($paper);
     $candidates[] = [
         'source' => 'elicit',
         'rank' => $index + 1,
@@ -862,9 +862,9 @@ foreach ($papers as $index => $paper) {
         'metadata' => [
             'year' => isset($paper['year']) ? (string) $paper['year'] : '',
             'venue' => trim((string) ($paper['journal'] ?? $paper['journal_name'] ?? $paper['venue'] ?? '')),
-            'publicationTypes' => isset($paper['publication_types']) && is_array($paper['publication_types'])
-                ? array_values(array_map('strval', $paper['publication_types']))
-                : [],
+            'publicationTypes' => $rankingSignals['publicationTypes'],
+            'journalQuartile' => $rankingSignals['journalQuartile'],
+            'fullTextUrl' => $rankingSignals['fullTextUrl'],
             'citedByCount' => isset($paper['citedByCount']) && is_numeric($paper['citedByCount'])
                 ? (int) $paper['citedByCount']
                 : null,
@@ -875,8 +875,11 @@ foreach ($papers as $index => $paper) {
     ];
 }
 
+$elicitWarning = muginFormatElicitSearchWarnings($decoded['warnings'] ?? []);
+
 echo json_encode([
     'query' => $query,
+    'warning' => $elicitWarning,
     'pmids' => array_values(array_keys($pmids)),
     'dois' => array_values(array_keys($dois)),
     'candidates' => $candidates,

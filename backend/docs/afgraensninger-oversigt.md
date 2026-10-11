@@ -51,7 +51,7 @@ Kolonnerne:
 | ID | Kategori | PubMed `searchStrings.normal` | OpenAlex `filter=` | Semantic Scholar | Elicit | Post-validation / tier |
 |---|---|---|---|---|---|---|
 | **L010** | **Reviewtype** (gruppe) | | | | | |
-| L010010 | Systematiske reviews | `"Systematic Review"[pt] OR "Meta-Analysis"[pt]` | `type:review` | `publicationTypes=Review,Meta-Analysis` | `typeTags=Systematic Review,Meta-Analysis` | `rule=systematicReview`, matcher `publicationType ⊇ {systematic review, meta-analysis}` |
+| L010010 | Systematiske reviews | `"Systematic Review"[pt] OR "Meta-Analysis"[pt]` | `type:review` og `study_designs.id:systematic-review` | `publicationTypes=Review,Meta-Analysis` | `typeTags=Systematic Review,Meta-Analysis` | `rule=systematicReview`, matcher `publicationType ⊇ {systematic review, meta-analysis}` |
 | L010020 | Cochrane Reviews | `"Cochrane Database Syst Rev"[Journal]` | `primary_location.source.display_name` | `venue=Cochrane Database of Systematic Reviews` | `typeTags=Systematic Review, Review` | Post-val på `sourceTitle` |
 | L010030 | Health Evidence | PMID-liste `(...PMID...) NOT "Retracted Publication"[pt] AND y_10[Filter]` | — | — | — | Kun PubMed (statisk PMID-liste) |
 | **L010040** | **Guidelines** (M2-udvidet) | `"Guideline"[pt]` | — | — | — | `rule=guideline` matcher på `publicationType ⊇ {guideline, practice guideline}` **ELLER** `pubTypeTier ∈ {guideline_verified, guideline_candidate}` — NY |
@@ -61,11 +61,11 @@ Kolonnerne:
 | L020020 | Incidens- og prævalensstudier | `"Incidence"[mh] OR "Prevalence"[mh] OR prevalence[ti] OR incidence[ti]` | — | — | — | Kun `semanticConfig.sourceContext` (ingen hardFilters/postValidation) |
 | L020030 | Kohortestudier | `"Cohort Studies"[mh] OR cohort[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
 | L020040 | Kvalitative studier | `"Qualitative Research"[mh] OR qualitative[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
-| L020050 | Randomiserede, kontrollerede forsøg (RCT) | `"Randomized Controlled Trial"[pt] OR randomi*[ti]` | — | — | `typeTags=RCT` | `hardFilters.studyDesign=[randomized controlled trial]` |
+| L020050 | Randomiserede, kontrollerede forsøg (RCT) | `"Randomized Controlled Trial"[pt] OR randomi*[ti]` | `study_designs.id:randomized-controlled-trial` | `publicationTypes=ClinicalTrial` | `typeTags=RCT` | `hardFilters.studyDesign=[randomized controlled trial]` |
 | L020060 | Økonomiske studier | `"Costs and Cost Analysis"[mh] OR cost*[ti] OR economic*[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
 | **L025** | **Kildeformat** (gruppe) | | | | | |
 | L025010 | Videnskabelig artikel | — (findes ikke i PubMed, kun semantisk) | `workType=article` | `publicationTypes=JournalArticle` | — | `rule=source-format-journal`, `hardFilters.sourceFormat=[journal]`, matcher `candidateSourceType`/`openAlexSourceType=journal` |
-| L025020 | Konferencepublikation | — (findes ikke i PubMed, kun semantisk) | `sourceType=conference` | `publicationTypes=Conference` | — | `rule=source-format-conference`, `hardFilters.sourceFormat=[conference]`, matcher `candidateSourceType`/`openAlexSourceType=conference` |
+| L025020 | Konferencepublikation | `"Meeting Abstract"[pt] OR "Conference Proceedings"[pt]` | `type:conference-paper\|conference-abstract` | `publicationTypes=Conference` | — | `rule=source-format-conference`, `hardFilters.sourceFormat=[conference]`, matcher `candidateSourceType`/`openAlexSourceType=conference` |
 | L025030 | Preprint | — (findes ikke i PubMed) | `sourceType` afledt fra `hardFilters.sourceFormat=[preprint]` (fallback-mapping til `repository`) | `publicationTypes=Preprint` | — | `rule=source-format-preprint`, matcher `candidateSourceType`/`openAlexSourceType=repository` |
 | **L030** | **Sprog** (gruppe) | | | | | |
 | L030010 | Engelsk | `english[la]` | `language:en` | — | — | `hardFilters.language=[en]` |
@@ -110,7 +110,7 @@ Bemærk: Celler med `—` betyder at kilden/parameteren ikke bruges for netop de
 Ved denne gennemgang (i forbindelse med Elicit v1→v2-migreringen) blev tabellen ovenfor sammenholdt direkte med `data/content/shared/limits.json`. Følgende var forkerte og er rettet i tabellen:
 
 - **L020 (Studietype)**: De tidligere ID'er/kategorier (`L020010=RCT`, `L020020=Klinisk studie`, `L020040=Case-control`, `L020050=Tværsnit`) matchede ikke `limits.json` og er rettet. "Klinisk studie" (Clinical Trial) og "Tværsnit" (Cross-Sectional) findes ikke længere som selvstændige afgrænsninger.
-- **L025 (Kildeformat)**: Gruppen hed tidligere "Tidsskriftsartikel" (med PubMed `[pt]`-søgestreng) og "Bog / bogkapitel" — ingen af de to findes i `limits.json` i dag. Gruppen er nu "Videnskabelig artikel" / "Konferencepublikation" / "Preprint", alle uden PubMed-søgestreng.
+- **L025 (Kildeformat)**: Gruppen hed tidligere "Tidsskriftsartikel" (med PubMed `[pt]`-søgestreng) og "Bog / bogkapitel" — ingen af de to findes i `limits.json` i dag. Gruppen er nu "Videnskabelig artikel" / "Konferencepublikation" / "Preprint". Kun konferencepublikation har en PubMed-søgestreng: `"Meeting Abstract"[pt] OR "Conference Proceedings"[pt]`. Videnskabelig artikel og preprint har ikke en tilsvarende PubMed-afgrænsning.
 - **L030 (Sprog)**: `L030030`/`L030040` var dokumenteret som en kombineret "Svensk/norsk" og en generisk "Øvrige"-kategori. Reelt er de to separate enkeltsprog: `L030030`=Norsk, `L030040`=Svensk. Der findes ingen generisk "øvrige sprog"-negation.
 - **L070010**: Var dokumenteret som "Seneste 2 år" — er reelt "Seneste 1 år" (`publicationDateYears=[1]`, `y_1[Filter]`).
 - **L080010**: Var dokumenteret som "Danske forfattere" — hedder reelt "Danske institutioner" og bruger en længere liste af by-/institutionsnavne i affiliation-feltet, ikke kun `Denmark[ad]`.
@@ -128,7 +128,7 @@ Dette er de konkrete felter hver kilde accepterer fra Mugin Scholar. Kilderne ha
 
 ### PubMed (NCBI E-utilities)
 
-Kaldes fra `backend/api/NlmSearch.php` (esearch) og `backend/api/NlmSummary.php` (esummary). Live søgning går via `UnifiedSearch.php` → `muginPublicSearchRunSearch()`, som bruger samme NLM-proxies.
+Kaldes fra `backend/api/NlmSearch.php` (esearch) og `backend/api/NlmSummary.php` (esummary). Live søgning går via `UnifiedSearch.php` → `muginPublicSearchRunSearch()`, som bruger samme NLM-proxies. `muginNlmRequestsPerSecond()` drossler alle NLM-kald til 10 i sekundet med API-nøgle og 3 uden.
 
 | API-parameter | Bruges til | Kilde i kodebase |
 |---|---|---|
@@ -156,8 +156,8 @@ Kaldes fra `backend/api/OpenAlexSearch.php` og `backend/api/OpenAlexWorkLookup.p
 
 | API-parameter | Bruges til | Kildeværdi |
 |---|---|---|
-| `search` | Keyword-query (når `searchMode=keyword`) | Fritekst efter intent-oversættelse |
-| `search.semantic` | Semantic-query (når `searchMode=semantic`) | Samme |
+| `search.title_abstract_keywords` | Keyword-nødkald, kun når semantisk søgning fejler eller giver 0 kandidater med PubMed-id eller DOI. Sammen med `rerank=true` og de samme filtre | Fritekst efter intent-oversættelse |
+| `search.semantic` | Semantic-query. Forespørgslen klippes til 2.000 tegn. Filtrene sendes med. `rerank` sendes ikke | Samme |
 | `per_page` | Sidesstørrelse (cap: 50) | `requestLimit` |
 | `page` | Offset | Pagination |
 | `select` | Kommaseparerede felter der hentes | Fast liste: `id, display_name, doi, ids, publication_year, publication_date, relevance_score, type, type_crossref, primary_location, fwci, cited_by_count, counts_by_year, is_retracted, open_access, primary_topic, authorships, abstract_inverted_index, language` |
@@ -166,6 +166,8 @@ Kaldes fra `backend/api/OpenAlexSearch.php` og `backend/api/OpenAlexWorkLookup.p
 | &nbsp;&nbsp;&nbsp;`primary_location.source.type:<type>` | Kildetype (journal, repository, conference) | `sourceFilters.openAlex.sourceType[]` |
 | &nbsp;&nbsp;&nbsp;`type:<type>\|<type>` | Work-type (article, review, book, book-chapter, dataset, dissertation osv.) | `sourceFilters.openAlex.workType[]` |
 | &nbsp;&nbsp;&nbsp;`publication_year:>=<år>` | Recency | `sourceFilters.openAlex.publicationYear` |
+| &nbsp;&nbsp;&nbsp;`study_designs.id:<id>` | Studiedesign. Flere designs er AND | `randomized-controlled-trial` for RCT, `systematic-review` for systematiske reviews og metaanalyser |
+| &nbsp;&nbsp;&nbsp;`open_access.is_oa:true` | Kun åben adgang | `sourceFilters.openAlex.isOa` |
 | &nbsp;&nbsp;&nbsp;`doi:<d1>\|<d2>\|...` (Work lookup) | Batch-hydration via DOI | `dois[]` i POST-body |
 | &nbsp;&nbsp;&nbsp;`openalex:<id>\|<id>\|...` (Work lookup) | Batch-hydration via OpenAlex ID (NY fra M2) | `openAlexIds[]` i POST-body |
 
@@ -194,7 +196,7 @@ Tilladte `publicationTypes`-værdier: `JournalArticle, Review, CaseReport, Clini
 
 ### Elicit
 
-Kaldes fra `backend/api/ElicitSearch.php` (endpoint `https://elicit.com/api/v2/search/papers`, kaldt med `corpus=elicit` og `searchMode=semantic` explicit sat).
+Kaldes fra `backend/api/ElicitSearch.php` (endpoint `https://elicit.com/api/v2/search/papers`, kaldt med `corpus=elicit` og `searchMode=semantic` explicit sat). `query` klippes til 2.000 tegn i selve kaldet. Den viste søgestreng beholdes.
 
 Elicit's API understøtter en relativt rig `filters`-kontrakt. Efter Elicit-udvidelsen bruger vi nu hele kontrakten for alle ikke-triviale signaler. Tabellen viser status pr. parameter.
 
@@ -235,7 +237,14 @@ Tilladte `typeTags`-værdier: `Review`, `Meta-Analysis`, `Systematic Review`, `R
 5. `backend/api/ElicitSearch.php` → `muginNormalizeElicit*`-helpers (`Year`, `Epoch`, `Quartile`, `Boolean`, `Retracted`) sanity-tjekker input og sender til Elicit's v2 search endpoint (`/api/v2/search/papers`)
 6. Ved 4xx fra Elicit: `buildElicitRequestRetryAttempt` + backend-`muginBuildElicitRetryHints` disabler det konkrete problem-felt og retrier
 
-**Bemærk**: Elicit returnerer altid DOI-normaliserede records, så der er ingen non-DOI/PMID-problematik for denne kilde.
+**Svarfelter vi læser** (ud over titel, abstract, DOI, PMID, venue, år og `citedByCount`):
+
+- `studyTypeTags` mappes til kandidatens `publicationTypes`. `RCT` bliver `Randomized Controlled Trial`. `Systematic Review`, `Meta-Analysis` og `Review` beholdes. `Longitudinal` og ukendte tags gemmes, men giver ikke et nyt tier. De forenes med PubMeds egne `pubtype` i klassifikatoren. Den viste `publicationTypes` på et PMID-resultat forbliver PubMeds liste.
+- `journalQuartile` (SJR, 1 = bedst) bruges kun i `authorityMultiplier`, når OpenAlex ikke har `authorityJournal.meanCitedness`. Q1 giver faktoren 0,02, Q2 0,01. Q3, Q4 og manglende kvartil ændrer intet. Kvartilen lægges ikke oven i et eksisterende tidsskriftsgennemsnit.
+- `fullTextUrl` udfylder `openAccessUrl`, når resultatet ikke allerede har et OpenAlex-`oa_url`. Det sætter ikke `isOpenAccess`.
+- `warnings` lægges på kildens `warning`, når der er kandidater, så de vises uden at markere kilden som fejlet.
+
+**Bemærk**: Elicit returnerer altid DOI-normaliserede records, så der er ingen non-DOI/PMID-problematik for denne kilde. Studietyper og kvartil er tomme på `corpus=pubmed`, derfor bliver vi på `corpus=elicit`.
 
 ## 4. Oversigt over `hardFilters`-felter
 

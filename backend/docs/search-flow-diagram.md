@@ -82,7 +82,7 @@ flowchart TD
   D --> E
 
   E --> SS["Semantic Scholar<br/>hvis valgt"]
-  E --> OA["OpenAlex<br/>hvis valgt<br/>+ evt. keyword supplement ved cap"]
+  E --> OA["OpenAlex<br/>hvis valgt<br/>semantisk med filtre<br/>keyword kun ved fejl eller 0"]
   E --> EL["Elicit<br/>hvis valgt"]
 
   E --> PM{"PubMed valgt som kilde?"}
@@ -141,7 +141,7 @@ flowchart LR
   A --> B2["Saml unikke OpenAlex<br/>author-ids og source-ids"]
   B1 --> C1["ICiteLookup.php<br/>batch 500 PMIDs"]
   B2 --> C2["OpenAlexAuthorityLookup.php<br/>batch 50 ids"]
-  C1 --> D1["RCR, nih_percentile,<br/>is_clinical, cited_by_clin, apt"]
+  C1 --> D1["RCR, nih_percentile, is_clinical,<br/>cited_by_clin, apt, field_citation_rate<br/>kun disse felter via fl"]
   C2 --> D2["h_index, 2yr_mean_citedness,<br/>is_in_doaj"]
   D1 --> E["Injicer i candidate.metadata"]
   D2 --> E
@@ -210,9 +210,9 @@ flowchart TD
 - Ved dato-sortering kan hybridrefs blive hydreres bredere og derefter sorteret paa dato.
 - `searchMore()` genbruger caches og `finalValidatedQuery`, saa pagination ikke genstarter hele retrievallogikken fra bunden.
 - Enrichment-sektionen `04b` koerer iCite og OpenAlex Authority parallelt og fejler graceful; ved fejl fortsaetter rerank uden de manglende signaler.
-- iCite daekker kun PMIDs. DOI-only kandidater faar `null` paa RCR og falder tilbage til FWCI/citation count i `computeCitationImpactMultiplier`.
-- Classification-sektionen `04c` koerer deterministisk paa de berigede metadata. Records uden titel hard-droppes. Records med tier `excluded` filtreres kun vaek, hvis `pubTypeTiers` er sat. Records uden abstract/forfatter/aarstal beholdes og nedgraderes via `dataQualityMultiplier`.
-- Den hybride rerank bruger formlen `(baseScore + additiveQualityBonus) * qualityMultiplier`, hvor `baseScore` er den klassiske RRF, `additiveQualityBonus` nu ogsaa inkluderer `pubTypeTierBonus` (tier * confidenceCoefficient), og `qualityMultiplier` inkluderer `dataQualityMultiplier`. Alle nye signaler defaulter til neutrale vaerdier.
+- iCite daekker kun PMIDs. DOI-only kandidater faar `null` paa RCR og falder tilbage til FWCI/citation count i `computeCitationImpactMultiplier`. Kaldet beder kun om de felter, rangeringen laeser (`fl`).
+- Classification-sektionen `04c` koerer deterministisk paa de berigede metadata, inklusive Elicits mappede studietyper. Records uden titel hard-droppes. Records med tier `excluded` filtreres kun vaek, hvis `pubTypeTiers` er sat. Records uden abstract/forfatter/aarstal beholdes og nedgraderes via `dataQualityMultiplier`.
+- Den hybride rerank bruger formlen `(baseScore + additiveQualityBonus) * qualityMultiplier`, hvor `baseScore` er den klassiske RRF, `additiveQualityBonus` nu ogsaa inkluderer `pubTypeTierBonus` (tier * confidenceCoefficient), og `qualityMultiplier` inkluderer `dataQualityMultiplier` og `authorityMultiplier`. Elicit-kvartil indgaar kun i authority, naar OpenAlex mangler `meanCitedness`. Alle nye signaler defaulter til neutrale vaerdier.
 
 ## 7. Kort Opsummering
 

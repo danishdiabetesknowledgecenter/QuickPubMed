@@ -104,6 +104,19 @@ if (!function_exists('muginGetOpenAlexWorkCacheTtl')) {
     }
 }
 
+if (!function_exists('muginOpenAlexWorkFullSelect')) {
+    /**
+     * Fields the DOI lookup and the full work cache must keep.
+     * Display reads abstract, topics, citation count and retraction.
+     * Filtering reads language, type, year, location, open access,
+     * biblio, authorships and study_designs. FWCI is not included.
+     */
+    function muginOpenAlexWorkFullSelect(): string
+    {
+        return 'id,doi,ids,display_name,title,publication_date,publication_year,biblio,abstract_inverted_index,authorships,primary_location,language,type,type_crossref,primary_topic,topics,keywords,open_access,is_retracted,cited_by_count,study_designs';
+    }
+}
+
 if (!function_exists('muginGetOpenAlexWorkCacheDir')) {
     function muginGetOpenAlexWorkCacheDir(): string
     {
@@ -122,8 +135,8 @@ if (!function_exists('muginGetOpenAlexWorkCachePath')) {
             'type' => strtolower(trim($type)),
             'value' => strtolower(trim($value)),
             'domain' => strtolower(trim($domain)),
-            // Bumped when full-select fields change (topics/keywords; concepts are not requested).
-            'selectVersion' => '2026-08-14',
+            // Bumped when full-select fields change (study_designs; concepts are not requested).
+            'selectVersion' => '2026-10-12',
         ];
         // Lightweight validation select omits heavy fields — separate namespace.
         if ($selectVariant !== 'full') {

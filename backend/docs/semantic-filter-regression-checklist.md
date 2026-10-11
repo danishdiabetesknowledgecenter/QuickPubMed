@@ -145,9 +145,9 @@ Bestået når netværk viser:
 
 Vigtig forventning:
 
-- `Hard-filter validation query` må gerne kun indeholde systematic-review-delen.
-- Det er forventet, fordi `L025020` har tomme `searchStrings` i `limits.json`.
-- `Konferencepublikation` håndhæves derfor via metadata og `postValidation.rules`, ikke via en ekstra PubMed-querystreng.
+- `Hard-filter validation query` skal indeholde både systematic-review-delen og `("Meeting Abstract"[pt] OR "Conference Proceedings"[pt])`.
+- PubMed-id'er, der ikke er mødeabstracts eller konferenceudgivelser, falder fra i PMID-valideringen.
+- Artikler uden PubMed-id håndhæves stadig via metadata og `postValidation.rules`.
 
 ## Supplerende display-check
 

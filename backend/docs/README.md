@@ -31,7 +31,7 @@ Den kanoniske hybride rerank-model (live path) lever i PHP:
 - `backend/app/semantic-quality-lib.php` — klassifikation, kvalitetssignaler og hybrid-formel (PHP-port).
 - `backend/app/public-search-lib.php` — orkestrator `muginPublicSearchRunSearch()` (web + public API).
 - `backend/api/UnifiedSearch.php` — first-party indgang for SearchForm-widgetten.
-- `backend/api/ICiteLookup.php` — batch-lookup til NIH iCite (RCR, nih_percentile, is_clinical, cited_by_clin, apt).
+- `backend/api/ICiteLookup.php` — batch-lookup til NIH iCite. `fl` begrænser svaret til RCR, nih_percentile, is_clinical, cited_by_clin, apt og field_citation_rate.
 - `backend/api/OpenAlexAuthorityLookup.php` — batch-lookup til OpenAlex (forfatter-h-index, journal 2yr_mean_citedness).
 - `backend/api/SemanticFinalRerank.php` — valgfri LLM-slutrerank med berigede kvalitetssignaler.
 - `MUGIN_RERANK_CONFIG` / `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED` i `backend/config/config.php` — vægte og feature flag. Se `backend/config/config.example.php`.

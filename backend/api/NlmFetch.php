@@ -45,7 +45,7 @@ if ($cachedResult !== null) {
 }
 
 // Make request to NLM
-muginThrottleNlmRequests(10);
+muginThrottleNlmRequests(muginNlmRequestsPerSecond($domain));
 $result = muginHttpRequest($url, [
     'method' => 'GET',
     'timeout' => 30,

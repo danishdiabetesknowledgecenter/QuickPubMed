@@ -87,7 +87,7 @@ if ($cachedResult !== null) {
 }
 
 // Make request to NLM
-muginThrottleNlmRequests(10);
+muginThrottleNlmRequests(muginNlmRequestsPerSecond($domain));
 $result = muginNlmSummaryLocalDevProxyRequest($params, 30);
 if (!$result['ok']) {
     $result = muginHttpRequest($url, [
