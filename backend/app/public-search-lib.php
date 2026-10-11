@@ -12166,7 +12166,7 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
                 }
                 if (
                     !muginPublicSearchCandidateMatchesHydratedFilters($entry['candidate'], $work, $hydratedHardFilters)
-                    || !muginPublicSearchCandidateMatchesOpenAlexDoiFilters($work, $hardFilters, $openAlexFilters)
+                    || !muginPublicSearchCandidateMatchesOpenAlexDoiFilters($work, $hydratedHardFilters, $openAlexFilters)
                 ) {
                     $doiRejectedByFilterCount++;
                     if (count($excludedExamples) < 10) {
