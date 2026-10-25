@@ -1865,7 +1865,6 @@ input.multiselect__input{
 .mugin_groupLabel {
   z-index: 1;
   margin-right: 7px;
-  color: var(--color-white);
 }
 
 li.multiselect__element.mugin_groupExpanded span.multiselect__option--group,
@@ -1898,10 +1897,8 @@ li.multiselect__element.mugin_groupExpanded span.multiselect__option--group i {
   background: transparent;
 }
 
-.mugin_dropdown .multiselect__option--group {
+.multiselect__option--group {
   height: 44px;
-  background: var(--color-group-header-bg);
-  color: var(--color-white);
 }
 
 .multiselect__option--selected {
@@ -1995,7 +1992,7 @@ li.multiselect__element.mugin_groupExpanded span.multiselect__option--group i {
   color: var(--color-white) !important;
 }
 
-.mugin_button.mugin_dark {
+.mugin_button.mugin_dark * {
   background-color: var(--color-primary-button) !important;
   color: var(--color-white) !important;
   white-space: nowrap;
