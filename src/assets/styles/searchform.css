@@ -90,7 +90,7 @@
 }
 
 .multiselect__tag span {
-  color: var(--color-white);
+  color: var(--color-white) !important;
 }
 
 .mugin_rerankProfileDropdown .multiselect__tags-wrap {
