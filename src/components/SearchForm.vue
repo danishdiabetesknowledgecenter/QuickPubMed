@@ -1080,6 +1080,9 @@
             this.setUrl();
             this.editForm();
           }
+          if (changed) {
+            this.updatePlaceholders();
+          }
         },
       },
       searchWithPubMedBestMatch: {
@@ -10470,6 +10473,10 @@
         const hasTopics = this.hasAvailableTopics;
         const width = this.topicDropdownWidth;
         const isMobileOrSmall = isMobileViewport() || (width < 520 && width >= 0);
+
+        if (this.searchWithAI && !hasTopics) {
+          return this.getString("topicAiPlaceholder");
+        }
 
         // Use the same mobile logic for both simple and advanced modes
         if (isMobileOrSmall) {

@@ -471,6 +471,10 @@ export const messages = {
     dk: "Indtast søgeord",
     en: "Enter search term",
   },
+  topicAiPlaceholder: {
+    dk: "Skriv din søgning",
+    en: "Enter search",
+  },
   translatingPlaceholder: {
     dk: "AI-oversættelse i gang...",
     en: "AI translation...",
