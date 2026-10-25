@@ -89,6 +89,10 @@
   font-weight: 400;
 }
 
+.multiselect__tag span {
+  color: var(--color-white);
+}
+
 .mugin_rerankProfileDropdown .multiselect__tags-wrap {
   display: block;
   width: 100%;
