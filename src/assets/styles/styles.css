@@ -1868,6 +1868,7 @@ input.multiselect__input{
 }
 
 li.multiselect__element.mugin_groupExpanded span.multiselect__option--group,
+li.multiselect__element.mugin_groupExpanded span.multiselect__option--group span,
 li.multiselect__element.mugin_groupExpanded span.multiselect__option--group i {
   color: var(--color-white) !important;
 }
@@ -1992,11 +1993,13 @@ li.multiselect__element.mugin_groupExpanded span.multiselect__option--group i {
   color: var(--color-white) !important;
 }
 
-.mugin_button.mugin_dark * {
+.mugin_button.mugin_dark,
+.mugin_button.mugin_dark span {
   background-color: var(--color-primary-button) !important;
   color: var(--color-white) !important;
   white-space: nowrap;
 }
+
 
 .mugin_emptySpace {
   width: 0;
