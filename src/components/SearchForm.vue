@@ -9824,13 +9824,8 @@
             freetextQuery || resolvedPubmed || String(this.searchIntent || "").trim()
           );
           this.captureSessionFreetextQueries(response?.resolvedQueries, freetextQuery);
-          // Parity with the local pipeline's per-source degraded-status badges
-          // (recordDegradedSearchStatus()): the API response's free-text
-          // warnings (e.g. one source failing while others still returned
-          // results) don't map to a translation messageKey the way the local
-          // pipeline's own per-source status codes do, but
-          // visibleDegradedSearchSummary only ever renders entry.message
-          // directly, so pre-resolved synthetic entries render correctly too.
+          // warnings er allerede på requestens sprog (samme tekster som formularen).
+          // Skærmlæseren læser entry.message direkte.
           if (Array.isArray(response.warnings) && response.warnings.length > 0) {
             this.degradedSearchSummary = response.warnings
               .map((message) => String(message || "").trim())

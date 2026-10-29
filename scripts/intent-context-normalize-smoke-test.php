@@ -263,4 +263,14 @@ assertThrows(static function (): void {
     ]);
 }, 'Override for a non-selected source does not satisfy query.text');
 
+$lookback = muginPublicSearchNormalizePostRequest([
+    'query' => ['text' => 'diabetes', 'language' => 'da'],
+    'sources' => ['pubmed'],
+    'hardFilters' => ['publicationDateYears' => [10, 1, 5]],
+]);
+assertTrue(
+    ($lookback['hardFilters']['publicationDateYears'] ?? null) === [1, 5, 10],
+    'publicationDateYears keeps SearchForm lookback windows and sorts them'
+);
+
 echo "\nAll intent-context normalization smoke tests passed.\n";

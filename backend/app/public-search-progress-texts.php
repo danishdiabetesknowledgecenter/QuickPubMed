@@ -1,7 +1,8 @@
 <?php
 /**
- * Alle brugervenlige progress-tekster (dansk/engelsk) til det offentlige
- * search API's streaming progress-events (`event: progress` i SSE-svaret).
+ * Alle brugervenlige progress- og advarselstekster (dansk/engelsk) til det
+ * offentlige search API. Progress-events bruger messageKey/groupKey.
+ * Feltet warnings i søgesvaret bruger de samme tekster.
  *
  * Denne fil indeholder KUN tekst - ingen logik - saa det er let at overskue
  * og oversaette alle tekster ét sted. Selve opslaget sker i
@@ -126,6 +127,90 @@ if (!defined('MUGIN_PUBLIC_SEARCH_PROGRESS_TEXTS')) {
         'semanticSearchProgressCacheHit' => [
             'dk' => 'Bruger et gemt resultat fra en tidligere søgning.',
             'en' => 'Using a cached result from an earlier search.',
+        ],
+        'semanticSearchProgressDoiHydrationWarning' => [
+            'dk' => 'Nogle eksterne resultater kunne ikke valideres via OpenAlex eller eksisterende Semantic Scholar-data og er derfor ikke medtaget.',
+            'en' => 'Some external results could not be validated via OpenAlex or existing Semantic Scholar data and are therefore not included.',
+        ],
+        'semanticSearchProgressPubMedFailed' => [
+            'dk' => 'PubMed svarede ikke. Resultater fra andre kilder bruges.',
+            'en' => 'PubMed did not respond. Results from other sources are used.',
+        ],
+        'semanticSearchProgressPubMedFallbackUsed' => [
+            'dk' => 'De ekstra kilder gav ingen brugbare resultater. PubMed-resultater vises som sikker fallback.',
+            'en' => 'The extra sources returned no usable results. PubMed results are shown as a safe fallback.',
+        ],
+        'semanticSearchProgressSemanticScholarFailed' => [
+            'dk' => 'Semantic Scholar svarede ikke. Resultater fra andre kilder bruges.',
+            'en' => 'Semantic Scholar did not respond. Results from other sources are used.',
+        ],
+        'semanticSearchProgressSemanticScholarPartial' => [
+            'dk' => 'Semantic Scholar returnerede kun delvise resultater. De tilgængelige resultater bruges.',
+            'en' => 'Semantic Scholar returned partial results. The available results are used.',
+        ],
+        'semanticSearchProgressSemanticScholarRateLimited' => [
+            'dk' => 'Semantic Scholar er midlertidigt utilgængelig på grund af API-begrænsning.',
+            'en' => 'Semantic Scholar is temporarily unavailable because of an API limit.',
+        ],
+        'semanticSearchProgressOpenAlexFailed' => [
+            'dk' => 'OpenAlex svarede ikke. Resultater fra andre kilder bruges.',
+            'en' => 'OpenAlex did not respond. Results from other sources are used.',
+        ],
+        'semanticSearchProgressOpenAlexPartial' => [
+            'dk' => 'OpenAlex returnerede kun delvise resultater. De tilgængelige resultater bruges.',
+            'en' => 'OpenAlex returned partial results. The available results are used.',
+        ],
+        'semanticSearchProgressOpenAlexRateLimited' => [
+            'dk' => 'OpenAlex er midlertidigt utilgængelig på grund af API-begrænsning.',
+            'en' => 'OpenAlex is temporarily unavailable because of an API limit.',
+        ],
+        'semanticSearchProgressOpenAlexRecovered' => [
+            'dk' => 'OpenAlex kunne ikke bruge alle filtre. Kilden blev brugt med forenklet filtergrundlag.',
+            'en' => 'OpenAlex could not use all filters. The source was used with simplified filters.',
+        ],
+        'semanticSearchProgressOpenAlexSemanticFilterSupplement' => [
+            'dk' => 'Søger i OpenAlex.',
+            'en' => 'Searching OpenAlex.',
+        ],
+        'semanticSearchProgressOpenAlexKeywordFallback' => [
+            'dk' => 'OpenAlex\' semantiske søgning svarede ikke. Kilden blev brugt med keywordsøgning som fallback.',
+            'en' => 'OpenAlex semantic search did not respond. The source was used with keyword search as fallback.',
+        ],
+        'semanticSearchProgressOpenAlexFallbackRecovered' => [
+            'dk' => 'OpenAlex blev brugt via en fallback-rute. Resultater fra kilden bruges.',
+            'en' => 'OpenAlex was used through a fallback route. Results from the source are used.',
+        ],
+        'semanticSearchProgressElicitFailed' => [
+            'dk' => 'Elicit svarede ikke. Resultater fra andre kilder bruges.',
+            'en' => 'Elicit did not respond. Results from other sources are used.',
+        ],
+        'semanticSearchProgressElicitPartial' => [
+            'dk' => 'Elicit returnerede kun delvise resultater. De tilgængelige resultater bruges.',
+            'en' => 'Elicit returned partial results. The available results are used.',
+        ],
+        'semanticSearchProgressElicitRateLimited' => [
+            'dk' => 'Elicit er midlertidigt utilgængelig på grund af API-begrænsning.',
+            'en' => 'Elicit is temporarily unavailable because of an API limit.',
+        ],
+        'semanticSearchProgressElicitRecovered' => [
+            'dk' => 'Elicit kunne ikke bruge alle filtre. Kilden blev brugt med forenklet filtergrundlag.',
+            'en' => 'Elicit could not use all filters. The source was used with simplified filters.',
+        ],
+        'semanticSearchWarningTopicMissingSearchStrings' => [
+            'dk' => 'Emnet {id} har ingen søgestrenge for omfanget {scope}.',
+            'en' => 'Topic {id} has no search strings for scope {scope}.',
+        ],
+        'semanticSearchWarningSourceFormatsMetadataOnly' => [
+            'dk' => 'Kildeformat kunne ikke håndhæves i PubMed-filteret og bruges kun, hvor metadata findes.',
+            'en' => 'Source format could not be enforced in the PubMed filter query and is only applied where metadata is available.',
+        ],
+        'semanticSearchWarningLexicalRescueFailed' => [
+            'dk' => 'Den ekstra PubMed-søgning kunne ikke gennemføres. De øvrige resultater bruges.',
+            'en' => 'The extra PubMed search could not be completed. The other results are used.',
+        ],
+        'semanticSearchWarningSourceAccessLimited' => [
+            'dk' => 'API-nøglen har ikke adgang til: {denied}. Resultaterne er begrænset til: {allowed}.',
+            'en' => 'This API key is not authorized for source(s): {denied}. Results were limited to: {allowed}.',
         ],
 
         // ===== groupKeys - overordnede grupper, flere messageKeys hoerer under =====

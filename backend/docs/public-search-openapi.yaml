@@ -27,9 +27,11 @@ paths:
       summary: URL-baseret søgning (SearchForm query-string)
       description: |
         Accepterer samme flade parametre som SearchForm / form-urlencoded POST
-        (`topic`, gentagne `limit=`, `databases`, `ai`, `focus`, `selected`, `pmid`,
-        `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`, …).
-        UI-only parametre (`advanced`, `collapsed`, `scrollto`, `component`, …) ignoreres.
+        (`topic`, gentagne `limit=`, `domain`, `databases`, `ai`, `focus`, `selected`, `pmid`,
+        `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`,
+        `checklimits`, `includeabstracts`, `includeprocessdetails`,
+        `resultsetid`, `reuseresultset`, …).
+        UI-only parametre (`advanced`, `collapsed`, `scrollto`, `component`, `elicitkey`, …) ignoreres.
         Query-string `apikey` (canonical lowercase; casing ignored) er kun tilgængelig når deploymenten tillader det.
         Ved lange payloads foretrækkes form-urlencoded POST.
       security:
@@ -43,6 +45,18 @@ paths:
           schema:
             type: string
           description: "Søgetekst (eller brug custom topic={{tekst}}#s:raw)"
+        - in: query
+          name: query
+          required: false
+          schema:
+            type: string
+          description: Alias for q
+        - in: query
+          name: domain
+          required: false
+          schema:
+            type: string
+          description: Påkrævet når katalog-topic-id’er bruges. Loader data/content/<domain>/topics.json.
         - in: query
           name: topic
           required: false
@@ -90,11 +104,29 @@ paths:
             type: string
           description: Alias for sources (SearchForm-navnet)
         - in: query
+          name: translationsources
+          required: false
+          schema:
+            type: string
+          description: Alias for sources/databases
+        - in: query
+          name: semanticsources
+          required: false
+          schema:
+            type: string
+          description: Alias for sources/databases
+        - in: query
           name: limit
           required: false
           schema:
             type: string
           description: "id#scope,… (OR inden for værdi). Gentag limit= for AND mellem grupper."
+        - in: query
+          name: checklimits
+          required: false
+          schema:
+            type: string
+          description: Ekstra limit-id’er (union med limit=).
         - in: query
           name: sort
           required: false
@@ -184,6 +216,36 @@ paths:
             Spring search-response- og LLM-slutrerank-cache over for dette kald.
             Sletter ikke runtime-cache; skriver stadig friske resultater tilbage.
             JSON-ækvivalent: responseOptions.noCache.
+        - in: query
+          name: includeabstracts
+          required: false
+          schema:
+            type: boolean
+          description: "responseOptions.includeAbstracts. Default true."
+        - in: query
+          name: includeprocessdetails
+          required: false
+          schema:
+            type: boolean
+          description: "responseOptions.includeProcessDetails. Default false."
+        - in: query
+          name: resultsetid
+          required: false
+          schema:
+            type: string
+            pattern: '^pipeline:[0-9a-f]{40}$'
+          description: >-
+            Fortsæt en gemt kandidatliste. JSON-ækvivalent: resultSetId.
+            Sammen med page>1 eller offset>0 hydreres kun det manglende udsnit.
+        - in: query
+          name: reuseresultset
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: >-
+            Genbrug den gemte rækkefølge på side 1 for relevance og best_match.
+            JSON-ækvivalent: reuseResultSet.
       responses:
         "200":
           description: Search response
@@ -249,6 +311,9 @@ paths:
                     Valgfri når katalog-topic-id’er eller custom topic= er sat.
                 query:
                   type: string
+                domain:
+                  type: string
+                  description: Påkrævet når katalog-topic-id’er bruges.
                 topic:
                   type: string
                   description: "Custom {{tekst}}#s:raw / {{pubmed}}#s:pubmed eller katalog-topic-id’er (komma). Legacy {{tekst0}}#s / {{tekst1}}#s accepteres."
@@ -273,9 +338,18 @@ paths:
                   description: Kommaseparerede kilder (alias sources)
                 sources:
                   type: string
+                translationsources:
+                  type: string
+                  description: Alias for sources/databases
+                semanticsources:
+                  type: string
+                  description: Alias for sources/databases
                 ai:
                   type: string
                   description: true/false (alias translation)
+                translation:
+                  type: string
+                  enum: [auto, none]
                 focus:
                   $ref: '#/components/schemas/FocusProfile'
                 sort:
@@ -289,9 +363,29 @@ paths:
                   description: >-
                     Én AND-gruppe: id#scope,... (OR inden for gruppen; default scope #s).
                     Gentag limit= for flere AND-grupper (samme semantik som SearchForm).
+                checklimits:
+                  type: string
+                  description: Ekstra limit-id’er (union med limit=)
                 pmid:
                   type: string
                   description: Kommaseparerede PMID’er til preselect
+                selected:
+                  type: string
+                  description: >-
+                    Kommaseparerede artikel-id’er (pmid:…, doi:… eller rene PMID-tal).
+                    Foretrækkes frem for pmid.
+                includeabstracts:
+                  type: string
+                  description: responseOptions.includeAbstracts
+                includeprocessdetails:
+                  type: string
+                  description: responseOptions.includeProcessDetails
+                resultsetid:
+                  type: string
+                  description: Fortsæt en gemt kandidatliste. JSON-ækvivalent resultSetId.
+                reuseresultset:
+                  type: string
+                  description: Genbrug gemt rækkefølge på side 1 for relevance og best_match. JSON-ækvivalent reuseResultSet.
                 lang:
                   type: string
                   enum: [da, en]
@@ -444,8 +538,13 @@ components:
         - elicit
     SortMethod:
       type: string
+      description: >-
+        Samme værdier som SearchForm. relevance sorterer på hybrid-scoren.
+        best_match sorterer på modellens 0–9-score. date_desc og date_asc
+        sorterer på dato. Ukendt værdi bliver relevance.
       enum:
         - relevance
+        - best_match
         - date_desc
         - date_asc
       default: relevance
@@ -466,6 +565,43 @@ components:
         - newest-research
         - broad-mapping
       default: ""
+    TopicSelection:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Katalog-id. Tom for custom fritekst.
+        scope:
+          type: string
+          enum: [narrow, normal, broad]
+          default: normal
+        custom:
+          type: boolean
+        rawText:
+          type: string
+          description: Custom fritekst. Påkrævet når custom er true. Alias text accepteres.
+        text:
+          type: string
+          description: Alias for rawText.
+        label:
+          type: string
+        translated:
+          type: boolean
+          description: true når teksten allerede er en PubMed-clause. Alias isTranslated accepteres.
+        isTranslated:
+          type: boolean
+          description: Alias for translated.
+    LimitSelection:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        scope:
+          type: string
+          enum: [narrow, normal, broad]
+          default: normal
     SearchRequest:
       type: object
       additionalProperties: false
@@ -524,7 +660,8 @@ components:
               description: >-
                 Valgfri absolut offset i den ordnede kandidatliste. Når sat,
                 bruges den i stedet for (number-1)*size til at vælge vinduet
-                af resultater. Nyttig til cursor-agtig pagination.
+                af resultater. SearchForm sender den sammen med resultSetId,
+                når side-størrelsen øges.
         translation:
           type: object
           additionalProperties: false
@@ -578,18 +715,38 @@ components:
               type: array
               items:
                 type: string
+            selectedTopicSelections:
+              type: array
+              description: Flad liste. Samme elementform som selectedTopicGroups.
+              items:
+                $ref: '#/components/schemas/TopicSelection'
+            selectedTopicGroups:
+              type: array
+              description: >-
+                AND mellem grupper, OR inden for en gruppe (samme som gentagne topic=).
+                Et element kan være et katalog-id eller et TopicSelection-objekt.
+              items:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - $ref: '#/components/schemas/TopicSelection'
             selectedLimitSelections:
               type: array
               description: Per-id scope (narrow/normal/broad) for PubMed searchStrings.
               items:
-                type: object
-                additionalProperties: false
-                properties:
-                  id:
-                    type: string
-                  scope:
-                    type: string
-                    enum: [narrow, normal, broad]
+                $ref: '#/components/schemas/LimitSelection'
+            selectedLimitGroups:
+              type: array
+              description: >-
+                AND mellem grupper, OR inden for en gruppe (samme som gentagne limit=).
+                Et element kan være et limit-id eller et LimitSelection-objekt.
+              items:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - $ref: '#/components/schemas/LimitSelection'
             selectedTopics:
               type: array
               description: Sprogneutral/engelsk visningskontekst; ikke bindende filterværdier.
@@ -689,6 +846,21 @@ components:
               type: string
               enum: [narrow, normal, broad]
               description: Hvilken variant der AND’es på fritekst. Default normal.
+        resultSetId:
+          type: string
+          pattern: '^pipeline:[0-9a-f]{40}$'
+          description: >-
+            Id på en gemt kandidatliste fra et tidligere svar. Sammen med
+            page.offset > 0 eller page.number > 1 hydreres kun det manglende
+            udsnit. Udløbet liste giver resultSetExpired=true og tomme results.
+            GET/form-urlencoded: resultsetid.
+        reuseResultSet:
+          type: boolean
+          default: false
+          description: >-
+            Når true sammen med resultSetId, page.number 1 og offset 0,
+            genbruges den gemte rækkefølge for relevance og best_match.
+            GET/form-urlencoded: reuseresultset.
         hardFilters:
           type: object
           additionalProperties: false
@@ -706,8 +878,13 @@ components:
               description: YYYY or YYYY-YYYY
             publicationDateYears:
               type: array
+              description: >-
+                Lookback windows in years, same as SearchForm (1, 5 or 10).
+                Not calendar years. publicationYear carries YYYY or YYYY-YYYY.
               items:
                 type: integer
+                minimum: 1
+                maximum: 9999
             publicationTypes:
               type: array
               items:
@@ -766,6 +943,14 @@ components:
                     type: string
                 publicationYear:
                   type: string
+                isOa:
+                  type: boolean
+                  nullable: true
+                  description: Kun åben adgang. Alias is_oa accepteres og normaliseres til isOa.
+                is_oa:
+                  type: boolean
+                  nullable: true
+                  description: Alias for isOa.
             elicit:
               type: object
               additionalProperties: false
@@ -782,12 +967,56 @@ components:
                   type: array
                   items:
                     type: string
+                minYear:
+                  type: integer
+                  minimum: 1800
+                  maximum: 2100
+                  nullable: true
+                maxYear:
+                  type: integer
+                  minimum: 1800
+                  maximum: 2100
+                  nullable: true
+                minEpochS:
+                  type: integer
+                  nullable: true
+                maxEpochS:
+                  type: integer
+                  nullable: true
+                maxQuartile:
+                  type: integer
+                  minimum: 1
+                  maximum: 4
+                  nullable: true
+                hasPdf:
+                  type: boolean
+                  nullable: true
+                pubmedOnly:
+                  type: boolean
+                  nullable: true
+                retracted:
+                  type: string
+                  enum: [exclude_retracted, include_retracted, only_retracted]
+                  description: >-
+                    Udeladt eller ukendt værdi bliver exclude_retracted, når Elicit kaldes.
+                    Samme default som SearchForm.
     SearchResponse:
       type: object
       additionalProperties: true
       properties:
         apiVersion:
           type: string
+        resultSetId:
+          type: string
+          pattern: '^pipeline:[0-9a-f]{40}$'
+          description: >-
+            Id på den gemte kandidatliste. Sendes med ved næste udsnit
+            (page.number > 1 eller page.offset > 0).
+        resultSetExpired:
+          type: boolean
+          description: >-
+            true når resultSetId ikke længere findes. results er tomme og total er 0.
+            Der startes ikke en ny søgning.
         query:
           type: object
         sources:
@@ -804,6 +1033,12 @@ components:
           type: boolean
         warnings:
           type: array
+          description: >-
+            Brugervenlige advarsler på sproget fra responseOptions.language
+            eller lang. en er engelsk, alt andet dansk. Teksterne ligger i
+            public-search-progress-texts.php og svarer til brugerfladen.
+            Tekniske kildefejl ligger i diagnostics.sourceWarnings, når
+            diagnostics er slået til.
           items:
             type: string
         selection:
@@ -843,6 +1078,10 @@ components:
         resolvedQueries:
           type: object
           additionalProperties: true
+          description: >-
+            pubmedQuery, semanticIntent, hardFilterQuery, freetextPubMedQuery
+            (kun den oversatte fritekst-clause) og sourceQueryPlan.
+            Med når includeResolvedQueries er true. includeProcessDetails slår det til.
         diagnostics:
           type: object
           additionalProperties: true
@@ -871,7 +1110,7 @@ components:
               type: integer
             durationFormatted:
               type: string
-              description: "Forloebet tid i tt:mm:ss-format, fx 00:00:01."
+              description: "Timer:minutter:sekunder, fx 00:00:01. Hele sekunder rundes ned."
         results:
           type: array
           items:
@@ -1041,11 +1280,13 @@ components:
             score from that final rerank when it ran. llmScoreRaw is present only
             when an empty abstract lowered the model score. llmConfidence is the
             decisions-model confidence from 0 to 1 when that model scored the article.
-            matchPercent is 0 to 100 from the same boosted score that orders the list.
-            It is saturated as 100 * score / (score + pivot). The pivot is chosen
-            so a strong realistic article is 90 percent: rank 1 in the strongest
-            selected source, the single strongest quality bonus, and a decisions
-            score of 7.5 at full confidence. A higher score approaches 100.
+            matchPercent is 0 to 100 and is the same number the web UI shows.
+            For relevance it is saturated as 100 * score / (score + pivot). The
+            pivot is chosen so a strong realistic article is 90 percent: rank 1
+            in the strongest selected source, the single strongest quality bonus,
+            and a decisions score of 7.5 at full confidence. A higher score
+            approaches 100. For best_match it is round(100 * min(score, 9) / 9),
+            so a model score of 9 is 100. Unscored articles are 0.
           properties:
             combinedScore:
               type: number
@@ -1066,9 +1307,10 @@ components:
               minimum: 0
               maximum: 100
               description: >
-                Saturated share of the sort score. Rank 1 in the strongest selected
-                source, with the strongest single quality bonus and a decisions
-                score of 7.5 at full confidence, is 90. Higher scores approach 100.
+                The percent shown per article in the web UI. For relevance, rank 1
+                in the strongest selected source, with the strongest single quality
+                bonus and a decisions score of 7.5 at full confidence, is 90.
+                Higher scores approach 100. For best_match, a model score of 9 is 100.
             bestRank:
               type: integer
             sourceCount:

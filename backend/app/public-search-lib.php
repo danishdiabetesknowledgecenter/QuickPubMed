@@ -777,6 +777,247 @@ if (!function_exists('muginPublicSearchGetPublicProgressMessageCopy')) {
     }
 }
 
+if (!function_exists('muginPublicSearchPublicProgressMessage')) {
+    /**
+     * Danish or English progress copy from public-search-progress-texts.php.
+     * Unknown language uses Danish. Empty when the key is missing.
+     */
+    function muginPublicSearchPublicProgressMessage(string $key, string $language): string
+    {
+        $copy = muginPublicSearchGetPublicProgressMessageCopy($key);
+        if (!is_array($copy)) {
+            return '';
+        }
+        $lang = strtolower(trim($language)) === 'en' ? 'en' : 'dk';
+        $text = trim((string) ($copy[$lang] ?? ''));
+        if ($text === '') {
+            $text = trim((string) ($copy['dk'] ?? ''));
+        }
+        return $text;
+    }
+}
+
+if (!function_exists('muginPublicSearchEncodeWarning')) {
+    /**
+     * Stores a catalog key (and optional {placeholders}) until the response
+     * language is known. Expanded by muginPublicSearchLocalizeWarningList().
+     *
+     * @param array<string,scalar> $params
+     */
+    function muginPublicSearchEncodeWarning(string $key, array $params = []): string
+    {
+        $token = 'muginWarning:' . $key;
+        if ($params === []) {
+            return $token;
+        }
+        $pairs = [];
+        foreach ($params as $name => $value) {
+            $pairs[] = rawurlencode((string) $name) . '=' . rawurlencode((string) $value);
+        }
+        return $token . ':' . implode('&', $pairs);
+    }
+}
+
+if (!function_exists('muginPublicSearchExpandWarningToken')) {
+    function muginPublicSearchExpandWarningToken(string $token, string $language): string
+    {
+        $rest = substr($token, strlen('muginWarning:'));
+        $key = $rest;
+        $params = [];
+        $colon = strpos($rest, ':');
+        if ($colon !== false) {
+            $key = substr($rest, 0, $colon);
+            $parsed = [];
+            parse_str(substr($rest, $colon + 1), $parsed);
+            if (is_array($parsed)) {
+                $params = $parsed;
+            }
+        }
+        $text = muginPublicSearchPublicProgressMessage($key, $language);
+        if ($text === '') {
+            return '';
+        }
+        foreach ($params as $name => $value) {
+            if (!is_scalar($value)) {
+                continue;
+            }
+            $text = str_replace('{' . (string) $name . '}', (string) $value, $text);
+        }
+        return $text;
+    }
+}
+
+if (!function_exists('muginPublicSearchLocalizeLegacyWarning')) {
+    /**
+     * Maps warning sentences stored before they were catalog keys.
+     */
+    function muginPublicSearchLocalizeLegacyWarning(string $warning, string $language): string
+    {
+        if ($warning === 'sourceFormats could not be enforced in the PubMed hard-filter query and are only applied where metadata is available.') {
+            $text = muginPublicSearchPublicProgressMessage('semanticSearchWarningSourceFormatsMetadataOnly', $language);
+            return $text !== '' ? $text : $warning;
+        }
+        if (preg_match('/^Topic (.+) has no searchStrings for scope (\S+)$/', $warning, $matches) === 1) {
+            $text = muginPublicSearchPublicProgressMessage('semanticSearchWarningTopicMissingSearchStrings', $language);
+            if ($text === '') {
+                return $warning;
+            }
+            return str_replace(['{id}', '{scope}'], [$matches[1], $matches[2]], $text);
+        }
+        if (strpos($warning, 'OpenAlex hydration failed for DOI candidate ') === 0) {
+            $text = muginPublicSearchPublicProgressMessage('semanticSearchProgressDoiHydrationWarning', $language);
+            return $text !== '' ? $text : $warning;
+        }
+        if (strpos($warning, 'PubMed lexical rescue failed:') === 0) {
+            $text = muginPublicSearchPublicProgressMessage('semanticSearchWarningLexicalRescueFailed', $language);
+            return $text !== '' ? $text : $warning;
+        }
+        if (preg_match('/^This API key is not authorized for source\(s\): (.+)\. Results were limited to: (.+)\.$/', $warning, $matches) === 1) {
+            $text = muginPublicSearchPublicProgressMessage('semanticSearchWarningSourceAccessLimited', $language);
+            if ($text === '') {
+                return $warning;
+            }
+            return str_replace(['{denied}', '{allowed}'], [$matches[1], $matches[2]], $text);
+        }
+        return $warning;
+    }
+}
+
+if (!function_exists('muginPublicSearchLocalizeWarningList')) {
+    /**
+     * @param array<int,mixed> $warnings
+     * @return array<int,string>
+     */
+    function muginPublicSearchLocalizeWarningList(array $warnings, string $language): array
+    {
+        $localized = [];
+        foreach ($warnings as $warning) {
+            $warning = trim((string) $warning);
+            if ($warning === '') {
+                continue;
+            }
+            if (strncmp($warning, 'muginWarning:', 13) === 0) {
+                $warning = muginPublicSearchExpandWarningToken($warning, $language);
+            } else {
+                $warning = muginPublicSearchLocalizeLegacyWarning($warning, $language);
+            }
+            if ($warning !== '') {
+                $localized[] = $warning;
+            }
+        }
+        return muginPublicSearchDedupeStrings($localized);
+    }
+}
+
+if (!function_exists('muginPublicSearchSourceResultIsRateLimited')) {
+    /**
+     * @param array<string,mixed> $sourceResult
+     */
+    function muginPublicSearchSourceResultIsRateLimited(array $sourceResult): bool
+    {
+        $rateLimit = $sourceResult['rateLimit'] ?? null;
+        if (is_array($rateLimit)) {
+            if (($rateLimit['isLimited'] ?? false) === true) {
+                return true;
+            }
+            if ((int) ($rateLimit['status'] ?? 0) === 429) {
+                return true;
+            }
+        }
+        $message = strtolower(trim(
+            (string) ($sourceResult['error'] ?? '') . ' ' . (string) ($sourceResult['warning'] ?? '')
+        ));
+        return strpos($message, '429') !== false
+            || strpos($message, 'rate limit') !== false
+            || strpos($message, 'rate-limited') !== false;
+    }
+}
+
+if (!function_exists('muginPublicSearchResolveSourceOutcomeStatus')) {
+    /**
+     * Same outcome as SearchForm.resolveSemanticSourceOutcomeStatus().
+     *
+     * @param array<string,mixed> $sourceResult
+     */
+    function muginPublicSearchResolveSourceOutcomeStatus(array $sourceResult): string
+    {
+        if (muginPublicSearchSourceResultIsRateLimited($sourceResult)) {
+            return 'rateLimited';
+        }
+        $disabled = (array) ($sourceResult['disabledRequestFields'] ?? []);
+        if (($sourceResult['fallbackUsed'] ?? false) === true || $disabled !== []) {
+            return 'recovered';
+        }
+        $candidateCount = count((array) ($sourceResult['candidates'] ?? []));
+        if (($sourceResult['partial'] ?? false) === true) {
+            return $candidateCount > 0 ? 'partial' : 'failed';
+        }
+        if (trim((string) ($sourceResult['warning'] ?? '')) !== '') {
+            return $candidateCount > 0 ? 'partial' : 'failed';
+        }
+        if (trim((string) ($sourceResult['error'] ?? '')) !== '') {
+            return 'failed';
+        }
+        return '';
+    }
+}
+
+if (!function_exists('muginPublicSearchOpenAlexRecoveredWarningKey')) {
+    /**
+     * @param array<string,mixed> $sourceResult
+     */
+    function muginPublicSearchOpenAlexRecoveredWarningKey(array $sourceResult): string
+    {
+        $disabled = (array) ($sourceResult['disabledRequestFields'] ?? []);
+        $reason = (string) ($sourceResult['fallbackReason'] ?? '');
+        if ($disabled !== [] || $reason === 'filters') {
+            if ($reason === 'semantic-filter-supplement') {
+                return 'semanticSearchProgressOpenAlexSemanticFilterSupplement';
+            }
+            return 'semanticSearchProgressOpenAlexRecovered';
+        }
+        if ($reason === 'keyword') {
+            return 'semanticSearchProgressOpenAlexKeywordFallback';
+        }
+        return 'semanticSearchProgressOpenAlexFallbackRecovered';
+    }
+}
+
+if (!function_exists('muginPublicSearchSourceUserWarningKey')) {
+    /**
+     * User-facing warning key for one source result. Empty when the form
+     * would not show a translated status for that outcome.
+     *
+     * @param array<string,mixed> $sourceResult
+     */
+    function muginPublicSearchSourceUserWarningKey(array $sourceResult): string
+    {
+        $source = trim((string) ($sourceResult['source'] ?? ''));
+        $status = muginPublicSearchResolveSourceOutcomeStatus($sourceResult);
+        if ($source === '' || $status === '') {
+            return '';
+        }
+        if ($source === 'openAlex' && $status === 'recovered') {
+            return muginPublicSearchOpenAlexRecoveredWarningKey($sourceResult);
+        }
+        $map = [
+            'pubmed:failed' => 'semanticSearchProgressPubMedFailed',
+            'pubmed:recovered' => 'semanticSearchProgressPubMedFallbackUsed',
+            'semanticScholar:failed' => 'semanticSearchProgressSemanticScholarFailed',
+            'semanticScholar:partial' => 'semanticSearchProgressSemanticScholarPartial',
+            'semanticScholar:rateLimited' => 'semanticSearchProgressSemanticScholarRateLimited',
+            'openAlex:failed' => 'semanticSearchProgressOpenAlexFailed',
+            'openAlex:partial' => 'semanticSearchProgressOpenAlexPartial',
+            'openAlex:rateLimited' => 'semanticSearchProgressOpenAlexRateLimited',
+            'elicit:failed' => 'semanticSearchProgressElicitFailed',
+            'elicit:partial' => 'semanticSearchProgressElicitPartial',
+            'elicit:rateLimited' => 'semanticSearchProgressElicitRateLimited',
+            'elicit:recovered' => 'semanticSearchProgressElicitRecovered',
+        ];
+        return $map[$source . ':' . $status] ?? '';
+    }
+}
+
 if (!function_exists('muginPublicSearchBuildStreamProgressPayload')) {
     /**
      * @param array<string,mixed> $request
@@ -2348,11 +2589,19 @@ if (!function_exists('muginPublicSearchNormalizePostRequest')) {
         );
         $publicationDateYears = [];
         foreach (muginPublicSearchNormalizeSimpleList($hardFilters['publicationDateYears'] ?? []) as $year) {
-            if (is_numeric($year) && (int) $year >= 1000 && (int) $year <= 9999) {
-                $publicationDateYears[] = (int) $year;
+            if (!is_numeric($year)) {
+                continue;
+            }
+            $yearInt = (int) $year;
+            // Lookback windows in years (1, 5, 10), same as SearchForm.
+            // Calendar ranges belong in publicationYear.
+            if ($yearInt > 0 && $yearInt <= 9999) {
+                $publicationDateYears[] = $yearInt;
             }
         }
-        $request['hardFilters']['publicationDateYears'] = array_values(array_unique($publicationDateYears));
+        $publicationDateYears = array_values(array_unique($publicationDateYears));
+        sort($publicationDateYears, SORT_NUMERIC);
+        $request['hardFilters']['publicationDateYears'] = $publicationDateYears;
         $request['hardFilters']['publicationTypes'] = muginPublicSearchDedupeStrings(
             array_map(
                 'muginPublicSearchNormalizeHardPublicationType',
@@ -3704,8 +3953,10 @@ if (!function_exists('muginPublicSearchHydrateRequestFromSelectedTopics')) {
                         ? $node['searchStrings'][$scope]
                         : [];
                     if (empty($searchStrings)) {
-                        $warnings[] = 'Topic ' . $normalized['id']
-                            . ' has no searchStrings for scope ' . $scope;
+                        $warnings[] = muginPublicSearchEncodeWarning(
+                            'semanticSearchWarningTopicMissingSearchStrings',
+                            ['id' => $normalized['id'], 'scope' => $scope]
+                        );
                     }
                     $hydratedGroup[] = $normalized;
                     $enLabel = muginPublicSearchCatalogNodeEnglishLabel($node);
@@ -3938,7 +4189,10 @@ if (!function_exists('muginPublicSearchBuildSelectedTopicPubMedQuery')) {
                     ? array_values(array_filter(array_map('strval', $node['searchStrings'][$scope])))
                     : [];
                 if (empty($searchStrings)) {
-                    $warnings[] = 'Topic ' . $id . ' has no searchStrings for scope ' . $scope;
+                    $warnings[] = muginPublicSearchEncodeWarning(
+                        'semanticSearchWarningTopicMissingSearchStrings',
+                        ['id' => $id, 'scope' => $scope]
+                    );
                     continue;
                 }
                 $combined = implode(' OR ', $searchStrings);
@@ -4282,8 +4536,10 @@ if (!function_exists('muginPublicSearchEnforceClientSourceAccess')) {
         $request['sources'] = $permittedSources;
         if (!empty($deniedSources)) {
             $request['_sourceAccessWarnings'] = [
-                'This API key is not authorized for source(s): ' . implode(', ', $deniedSources)
-                . '. Results were limited to: ' . implode(', ', $permittedSources) . '.',
+                muginPublicSearchEncodeWarning('semanticSearchWarningSourceAccessLimited', [
+                    'denied' => implode(', ', $deniedSources),
+                    'allowed' => implode(', ', $permittedSources),
+                ]),
             ];
         }
         return $request;
@@ -7063,7 +7319,7 @@ if (!function_exists('muginPublicSearchBuildHardFilterQuery')) {
         }
 
         if (!empty($hardFilters['sourceFormats'])) {
-            $warnings[] = 'sourceFormats could not be enforced in the PubMed hard-filter query and are only applied where metadata is available.';
+            $warnings[] = muginPublicSearchEncodeWarning('semanticSearchWarningSourceFormatsMetadataOnly');
         }
 
         return [
@@ -12011,6 +12267,7 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
         $allowedKeys = [];
         $hydratedByKey = [];
         $warnings = [];
+        $doiHydrationUserWarning = false;
         $pmidCandidateCount = 0;
         $pmidRejectedByTrustCount = 0;
         $doiCandidateCount = 0;
@@ -12150,7 +12407,7 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
                         ];
                         $semanticScholarFallbackCount++;
                     } else {
-                        $warnings[] = 'OpenAlex hydration failed for DOI candidate ' . strtolower($entry['doi']);
+                        $doiHydrationUserWarning = true;
                         continue;
                     }
                 }
@@ -12269,10 +12526,9 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
                         'status' => 'warning',
                         'missingCount' => count($doiEntries) - $doiHydratedCount,
                         'messageKey' => 'semanticSearchProgressDoiHydrationWarning',
-                        'message' => muginPublicSearchGetFrontendTranslation(
+                        'message' => muginPublicSearchPublicProgressMessage(
                             'semanticSearchProgressDoiHydrationWarning',
-                            $responseLanguage === 'en' ? 'en' : 'dk',
-                            'Some external results could not be validated via OpenAlex.'
+                            $responseLanguage
                         ),
                     ]
                     : null,
@@ -12290,6 +12546,9 @@ if (!function_exists('muginPublicSearchBuildAllowedCandidateKeys')) {
                 $progressCallback,
                 true
             );
+        }
+        if ($doiHydrationUserWarning) {
+            $warnings[] = muginPublicSearchEncodeWarning('semanticSearchProgressDoiHydrationWarning');
         }
         return [
             'allowedKeys' => $allowedKeys,
@@ -14674,10 +14933,10 @@ if (!function_exists('muginPublicSearchBuildFinalResponse')) {
         ?array $preselectedResults = null
     ): array {
         $selectionWarnings = (array) ($request['_topicHydrationWarnings'] ?? []);
-        $mergedWarnings = muginPublicSearchDedupeStrings(array_merge(
+        $mergedWarnings = muginPublicSearchLocalizeWarningList(array_merge(
             array_map('strval', $warnings),
             array_map('strval', $selectionWarnings)
-        ));
+        ), (string) ($request['responseOptions']['language'] ?? 'da'));
         $response = [
             'apiVersion' => '1',
             'query' => [
@@ -15936,24 +16195,34 @@ if (!function_exists('muginPublicSearchRunSearch')) {
         }
 
         $successfulSourceCount = 0;
+        $technicalSourceFailures = [];
         foreach ($sourceResults as $sourceResult) {
             if (!empty($sourceResult['candidates'])) {
                 $successfulSourceCount++;
             }
-            if (trim((string) ($sourceResult['warning'] ?? '')) !== '') {
-                $warnings[] = trim((string) $sourceResult['warning']);
+            $sourceName = trim((string) ($sourceResult['source'] ?? ''));
+            $sourceError = trim((string) ($sourceResult['error'] ?? ''));
+            $sourceWarning = trim((string) ($sourceResult['warning'] ?? ''));
+            $warningKey = muginPublicSearchSourceUserWarningKey($sourceResult);
+            if ($warningKey !== '') {
+                $warnings[] = muginPublicSearchEncodeWarning($warningKey);
             }
-            if (trim((string) ($sourceResult['error'] ?? '')) !== '') {
-                $warnings[] = trim((string) $sourceResult['error']);
+            if ($sourceError !== '' || $sourceWarning !== '') {
+                $diagnostics['sourceWarnings'][] = [
+                    'source' => $sourceName,
+                    'error' => $sourceError,
+                    'warning' => $sourceWarning,
+                ];
+                $technicalSourceFailures[] = ($sourceName !== '' ? $sourceName . ': ' : '')
+                    . ($sourceError !== '' ? $sourceError : $sourceWarning);
             }
         }
         if ($successfulSourceCount === 0) {
-            // De praecise underliggende fejl/advarsler er allerede samlet i
-            // $warnings herover. De inkluderes her i selve exception-beskeden,
-            // saa den reelle aarsag (fx en upstream-fejl eller "0 kandidater
-            // havde et PMID/DOI") ikke gaar tabt, naar exception'en fanges i
-            // public-api/v1/search.php og bliver til det endelige 502-svar.
-            $failureDetail = !empty($warnings) ? ' (' . implode(' | ', array_unique($warnings)) . ')' : '';
+            // Den tekniske kildefejl bliver i 502-beskeden. Brugervendte
+            // advarsler er katalog-nøgler og må ikke erstatte årsagen her.
+            $failureDetail = !empty($technicalSourceFailures)
+                ? ' (' . implode(' | ', array_unique($technicalSourceFailures)) . ')'
+                : '';
             throw new RuntimeException(
                 'All selected search sources failed or returned no candidates' . $failureDetail,
                 502
@@ -16003,7 +16272,8 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                 } catch (Throwable $exception) {
                     // Fail soft: lexical rescue is a supplementary enrichment
                     // step, not a hard dependency of the search.
-                    $warnings[] = 'PubMed lexical rescue failed: ' . $exception->getMessage();
+                    $semanticRescueMeta['error'] = $exception->getMessage();
+                    $warnings[] = muginPublicSearchEncodeWarning('semanticSearchWarningLexicalRescueFailed');
                 }
             }
         }
@@ -16099,10 +16369,9 @@ if (!function_exists('muginPublicSearchRunSearch')) {
                             'status' => 'warning',
                             'missingCount' => (int) $candidateKeyDiagnostics['openAlexMissingCount'],
                             'messageKey' => 'semanticSearchProgressDoiHydrationWarning',
-                            'message' => muginPublicSearchGetFrontendTranslation(
+                            'message' => muginPublicSearchPublicProgressMessage(
                                 'semanticSearchProgressDoiHydrationWarning',
-                                (($request['responseOptions']['language'] ?? 'da') === 'en') ? 'en' : 'dk',
-                                'Some external results could not be validated via OpenAlex.'
+                                (string) ($request['responseOptions']['language'] ?? 'da')
                             ),
                         ]
                         : null,

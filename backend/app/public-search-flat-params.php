@@ -319,6 +319,7 @@ if (!function_exists('muginPublicSearchFlatParamUiIgnoreKeys')) {
             'apibase',
             'component', // SearchForm instance target; not part of search request body
             'apikey', // auth is read separately; not part of search request body
+            'elicitkey', // widget unlock key; stripped from the page URL and not part of search
         ];
     }
 }

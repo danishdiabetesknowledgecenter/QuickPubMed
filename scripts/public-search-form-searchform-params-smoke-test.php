@@ -635,6 +635,15 @@ assertTrue(
     ($componentIgnored['queryOverrides']['pubmed'] ?? '') === 'ibuprofen[tiab]',
     'component is UI-only and ignored'
 );
+$elicitKeyIgnored = muginPublicSearchBuildRequestFromFlatParams([
+    'q' => 'diabetes',
+    'databases' => 'pubmed',
+    'elicitKey' => 'secret',
+]);
+assertTrue(
+    ($elicitKeyIgnored['query']['text'] ?? '') === 'diabetes',
+    'elicitkey is UI-only and ignored'
+);
 
 $qpubmedOnly = muginPublicSearchBuildRequestFromFlatParams([
     'qpubmed' => 'ibuprofen[tiab]',
@@ -911,6 +920,38 @@ try {
     $tooLongRejected = strpos($exception->getMessage(), 'exceeds maximum length of 20000') !== false;
 }
 assertTrue($tooLongRejected, 'query.text over 20000 characters is rejected');
+
+$danishSourceWarning = muginPublicSearchLocalizeWarningList([
+    muginPublicSearchEncodeWarning('semanticSearchProgressSemanticScholarFailed'),
+    'OpenAlex hydration failed for DOI candidate 10.1000/xyz',
+    'OpenAlex hydration failed for DOI candidate 10.1000/abc',
+], 'da');
+assertTrue(
+    $danishSourceWarning === [
+        'Semantic Scholar svarede ikke. Resultater fra andre kilder bruges.',
+        'Nogle eksterne resultater kunne ikke valideres via OpenAlex eller eksisterende Semantic Scholar-data og er derfor ikke medtaget.',
+    ],
+    'warnings localize to Danish and collapse repeated DOI failures'
+);
+$englishTopicWarning = muginPublicSearchLocalizeWarningList([
+    muginPublicSearchEncodeWarning('semanticSearchWarningTopicMissingSearchStrings', [
+        'id' => 'S010',
+        'scope' => 'normal',
+    ]),
+], 'en');
+assertTrue(
+    $englishTopicWarning === ['Topic S010 has no search strings for scope normal.'],
+    'topic warning localizes placeholders to English'
+);
+assertTrue(
+    muginPublicSearchSourceUserWarningKey([
+        'source' => 'openAlex',
+        'error' => 'HTTP 429 rate limit',
+        'warning' => '',
+        'candidates' => [],
+    ]) === 'semanticSearchProgressOpenAlexRateLimited',
+    'OpenAlex rate limit uses the form status key'
+);
 
 if ($failures > 0) {
     fwrite(STDERR, "\n{$failures} smoke assertion(s) failed.\n");

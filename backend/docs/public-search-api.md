@@ -80,6 +80,8 @@ Hvis `allow_all_origins` er `false`, bruges den normale `allowed_origins`-allowl
 - `queryOverrides`
 - `cachedFreetextQueries`
 - `standardString`
+- `resultSetId`
+- `reuseResultSet`
 
 Ukendte felter afvises eksplicit.
 
@@ -88,6 +90,10 @@ Ukendte felter afvises eksplicit.
 `cachedFreetextQueries` er valgfrit og gælder kun JSON POST som klient-sendt session-genbrug. Tilladte nøgler: `input` (skal matche `query.text`), `pubmed`, `semanticScholar`, `openAlex`, `elicit`. PubMed-værdien er **kun** den oversatte fritekst-clause; aktuelle emner og afgrænsninger AND’es stadig. Feltet skal **udelades helt** når der ikke er en gemt oversættelse. GET og form-urlencoded sender ikke feltet: samme fritekst (`query.text` / `q=`) genbruges i stedet fra serverens fritekst-cache, så LLM-oversættelsen ikke køres igen.
 
 `standardString` er valgfrit og gælder kun JSON POST. Tilladte nøgler: `text` (valgfri override-streng) og `scope` (`narrow` | `normal` | `broad`, default `normal`). Om standardsøgestrengen AND’es på **fritekst** styres i editoren (`topics.json` `standardStringAddToFreetext`) og gælder både SearchForm og API. `add` accepteres stadig fra ældre klienter, men ignoreres. Katalog-emner bruger stadig deres egne `combineWithStandardString`-flag. GET og form-urlencoded understøtter ikke feltet.
+
+`resultSetId` er valgfrit. Formatet er `pipeline:` plus 40 hex-tegn og er id’et på den gemte kandidatliste fra et tidligere svar (`resultSetId` i response). Sammen med `page.offset` > 0 eller `page.number` > 1 fortsætter kaldet den liste og hydrerer kun det manglende udsnit. En udløbet liste giver `resultSetExpired: true`, `total: 0` og tomme `results`. Der startes ikke en ny søgning. GET og form-urlencoded bruger `resultsetid`.
+
+`reuseResultSet` er valgfrit (`true`/`false`, default `false`). Når det er `true` sammen med et gyldigt `resultSetId`, `page.number` 1 og offset 0, genbruges den gemte rækkefølge for `relevance` og `best_match` i stedet for at køre søgningen forfra. GET og form-urlencoded bruger `reuseresultset`.
 
 ### Form-urlencoded POST (SearchForm-paritet)
 
@@ -133,8 +139,12 @@ q=Findes%20julemanden%3F
 | `pmid` | legacy alias for `selected` (rene PMID-tal; `doi:`-præfiks accepteres) |
 | `lang`, `stream` | progress-sprog / SSE |
 | `nocache` | `1`/`true`: spring search-response- og LLM-slutrerank-cache over for dette kald (sletter ikke runtime-filer; skriver stadig friske resultater tilbage). JSON: `responseOptions.noCache` |
+| `includeabstracts` | `responseOptions.includeAbstracts` (default true) |
+| `includeprocessdetails` | `responseOptions.includeProcessDetails` (default false) |
+| `resultsetid` | fortsæt en gemt kandidatliste. JSON: `resultSetId` |
+| `reuseresultset` | genbrug gemt rækkefølge på side 1. JSON: `reuseResultSet` |
 
-UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `mugindebug`, `apibase`, `component`) accepteres og ignoreres.
+UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `mugindebug`, `apibase`, `component`, `elicitkey`) accepteres og ignoreres. `elicitkey` låser Elicit op i widgetten og indgår ikke i søgningen.
 
 Fra `limit`-id’er hydrerer serveren `hardFilters`, `sourceFilters`, post-validation-rules og engelske labels via `limits.json`. Fra katalog-`topic`-id’er hydrerer serveren labels og deterministiske PubMed-`searchStrings` via domain-`topics.json` (samme model som SearchForm).
 
@@ -181,10 +191,15 @@ Lange payloads: brug form-POST (body). Rene GET-URL’er er begrænset af webser
       "publicationTypes": ["Review"]
     },
     "openAlex": {
-      "language": ["en"]
+      "language": ["en"],
+      "isOa": true
     },
     "elicit": {
-      "typeTags": ["Systematic Review"]
+      "typeTags": ["Systematic Review"],
+      "minYear": 2020,
+      "maxQuartile": 2,
+      "hasPdf": true,
+      "retracted": "exclude_retracted"
     }
   }
 }
@@ -204,13 +219,13 @@ SearchForm og API deler samme flade query-/form-parametre. Typisk workflow:
    - Samme regel gælder for andre stier, fx `/soeg` eller `/entries/widgets/searchform.html`.
    - `/v1/search` virker stadig som officiel integrationssti.
 4. Tilføj auth: `X-API-Key` / Bearer, eller (kun GET, hvis deployment tillader det) `apikey=` i query. En ren host-swap uden nøgle giver 401.
-5. UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `mugindebug`, `apibase`, `component`) må gerne følge med — API’en ignorerer dem.
+5. UI-only parametre (`advanced`, `collapsed`, `scrollto`, `openlimits`, `hidelimits`, `orderlimits`, `mugindebug`, `apibase`, `component`, `elicitkey`) må gerne følge med — API’en ignorerer dem.
 
 Ved lange query-strings (mange `limit=`/`topic=`) foretræk form-urlencoded `POST` med samme parametre i body — webservere begrænser typisk GET request-line til ~8–16 KB.
 
 ## GET request
 
-`GET /v1/search` accepterer **samme flade SearchForm-parametre** som form-urlencoded POST (`q`/`query`/`topic`, `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`, `databases`/`sources`, `ai`/`translation`, `focus`, `sort`, `page`, `pagesize`, gentagne `limit=`, `checklimits`, `selected`/`pmid`, `lang`, `stream`, …). Gentagne `limit=` / `topic=` bevares (AND mellem grupper). `q*`-parametre list-splittes ikke; de vinder over `q`/`topic` for den pågældende kilde.
+`GET /v1/search` accepterer **samme flade SearchForm-parametre** som form-urlencoded POST (`q`/`query`/`topic`, `qpubmed` / `qsemanticscholar` / `qopenalex` / `qelicit`, `domain`, `databases`/`sources`/`translationsources`/`semanticsources`, `ai`/`translation`, `focus`, `sort`, `page`, `pagesize`, gentagne `limit=`, `checklimits`, `selected`/`pmid`, `lang`, `stream`, `includeabstracts`, `includeprocessdetails`, `nocache`, `resultsetid`, `reuseresultset`, …). Gentagne `limit=` / `topic=` bevares (AND mellem grupper). `q*`-parametre list-splittes ikke; de vinder over `q`/`topic` for den pågældende kilde.
 
 Eksempel (simpel):
 
@@ -267,7 +282,10 @@ Hvis `stream` eller `lang` findes baade i URL og i JSON body, vinder URL-paramet
 
 ### `sort.method`
 
-- `relevance`
+Samme værdier som SearchForm. Ukendt værdi bliver `relevance`.
+
+- `relevance` — hybrid-score
+- `best_match` — modellens 0–9-score (højeste først)
 - `date_desc`
 - `date_asc`
 
@@ -285,13 +303,37 @@ Hvis feltet udelades, eller værdien er ukendt, anvendes ingen profil-override (
 
 **Bemærk om `focus`:** Med `MUGIN_UNIFIED_SEARCH_ENGINE_ENABLED=true` anvender PHP-orkestratoren (`muginPublicSearchRunSearch`) de **fulde** hybrid-profiler — samme overflade som web-widgetten: kilde-vægte, pmid-/overlap-bonus, publikationstype-tier, recency, citation impact, kliniske bonusser, data-quality m.m. (`MUGIN_RERANK_CONFIG` + `MUGIN_RERANK_PROFILE_CONFIG` via `semantic-quality-lib.php`). Kvalitetslaget er **ikke** frontend-only. Når flaget er `false`, begrænses `focus` til den ældre RRF-only-sti (kilde-vægte, pmid-/overlap-bonus og LLM-prompt-instruktion).
 
+### `intentContext`
+
+Samme struktur som SearchForm sender til `UnifiedSearch.php`. `limit=` og katalog-`topic=` hydrerer felterne, når de ikke sendes eksplicit.
+
+- `selectedTopicGroups`: AND mellem grupper, OR inden for en gruppe (samme som gentagne `topic=`). Hvert element er `{ id, scope, custom, rawText, label, translated }`. `scope` er `narrow` | `normal` | `broad`. Custom fritekst har `custom: true` og tekst i `rawText` (alias `text`). `translated: true` (alias `isTranslated`) betyder, at teksten allerede er en PubMed-clause.
+- `selectedTopicSelections`: flad liste med samme elementform. Uden grupper lægges den i én OR-gruppe.
+- `selectedLimitGroups`: AND mellem grupper, OR inden for en gruppe (samme som gentagne `limit=`). Hvert element er `{ id, scope }` eller et nøgent limit-id.
+- `selectedLimitSelections`: flad liste af `{ id, scope }`.
+
+### `sourceFilters`
+
+Samme felter som web-widgetten. `limit=`-id’er udfylder dem fra `limits.json`, når JSON-felterne er tomme.
+
+- `semanticScholar`: `publicationTypes`, `publicationDateOrYear`, `year`
+- `openAlex`: `language`, `sourceType`, `workType`, `publicationYear`, `isOa` (alias `is_oa`)
+- `elicit`: `typeTags`, `includeKeywords`, `excludeKeywords`, `minYear`, `maxYear` (1800–2100), `minEpochS`, `maxEpochS`, `maxQuartile` (1–4), `hasPdf`, `pubmedOnly`, `retracted`
+
+`retracted` er `exclude_retracted`, `include_retracted` eller `only_retracted`. Udeladt eller ukendt værdi bliver `exclude_retracted`, når Elicit kaldes — samme default som SearchForm.
+
+`hardFilters.publicationDateYears` er tilbageblik i år, samme som SearchForm: `1`, `5` eller `10`. Det er ikke kalenderår. Kalenderintervallet ligger i `hardFilters.publicationYear` som `YYYY` eller `YYYY-YYYY`.
+
 ## Response
 
-API'et returnerer den endelige ordnede liste i `results`.
+API'et returnerer den endelige ordnede liste i `results`. Et succes-svar indeholder også `resultSetId` (`pipeline:` plus 40 hex-tegn), når kandidatlisten er gemt. Det id sendes med ved næste udsnit. Er listen væk, er `resultSetExpired` `true`, `results` er tom, og `total` er 0.
+
+`warnings` er korte brugertekster på svar-sproget (`responseOptions.language` eller `lang`: `en` er engelsk, alt andet dansk). De kommer fra `backend/app/public-search-progress-texts.php` og bruger de samme formuleringer som brugerfladen, når advarslen har en fast tekst. Den tekniske kildefejl ligger i `diagnostics.sourceWarnings`, når diagnostics er slået til.
 
 ```json
 {
   "apiVersion": "1",
+  "resultSetId": "pipeline:0123456789abcdef0123456789abcdef01234567",
   "query": {
     "text": "Hvilken effekt har motion ved type 2-diabetes?",
     "language": "da"
@@ -356,6 +398,7 @@ API'et returnerer den endelige ordnede liste i `results`.
   },
   "resolvedQueries": {
     "pubmedQuery": "(exercise[tiab]) AND (type 2 diabetes[tiab])",
+    "freetextPubMedQuery": "(exercise[tiab]) AND (type 2 diabetes[tiab])",
     "semanticIntent": "exercise type 2 diabetes",
     "hardFilterQuery": "english[la] AND 2020:2026[dp]",
     "sourceQueryPlan": {
@@ -439,7 +482,9 @@ API'et returnerer den endelige ordnede liste i `results`.
 }
 ```
 
-`ranking` er additivt og udelades, hvis kandidaten ikke har score-data. `combinedScore` er hybrid-scoren fra før LLM-slutrerank. `llmScore` er modellens score fra 0 til 9, når slutrerankingen har kørt. `llmScoreRaw` findes kun, når et tomt abstract har sænket den score. `llmConfidence` er decisions-modellens sikkerhed fra 0 til 1, når den model har scoret artiklen. `matchPercent` er 0 til 100 og følger den samme score, listen er sorteret på. Tallet mættes som `100 × score / (score + omdrejningspunkt)`. Omdrejningspunktet er sat, så en stærk, realistisk artikel vises som 90 %: plads 1 i den stærkeste valgte kilde, den ene stærkeste kvalitetsbonus og en decisions-score på 7,5 med fuld sikkerhed. Flere kilder og de øvrige bonusser kan løfte højere, og scoren nærmer sig 100 uden at skulle ramme hvert maksimum på én gang. Den øverste artikel er derfor ikke automatisk 100. Resultatlisten er allerede i den rækkefølge, slutrerankingen lagde.
+`ranking` er additivt og udelades, hvis kandidaten ikke har score-data. `combinedScore` er hybrid-scoren fra før LLM-slutrerank. `llmScore` er modellens score fra 0 til 9, når slutrerankingen har kørt. `llmScoreRaw` findes kun, når et tomt abstract har sænket den score. `llmConfidence` er decisions-modellens sikkerhed fra 0 til 1, når den model har scoret artiklen. `matchPercent` er 0 til 100 og er det tal, brugerfladen viser ved artiklen. Ved `relevance` følger det den score, listen er sorteret på, og mættes som `100 × score / (score + omdrejningspunkt)`. Omdrejningspunktet er sat, så en stærk, realistisk artikel vises som 90 %: plads 1 i den stærkeste valgte kilde, den ene stærkeste kvalitetsbonus og en decisions-score på 7,5 med fuld sikkerhed. Flere kilder og de øvrige bonusser kan løfte højere, og scoren nærmer sig 100 uden at skulle ramme hvert maksimum på én gang. Den øverste artikel er derfor ikke automatisk 100. Ved `best_match` er procenten `afrundet(100 × min(score, 9) / 9)`, så 9 er 100 %. Artikler uden score er 0. Resultatlisten er allerede i den rækkefølge, slutrerankingen lagde.
+
+`resolvedQueries.freetextPubMedQuery` er kun den oversatte fritekst-clause. SearchForm gemmer den som `cachedFreetextQueries.pubmed`. Feltet er med, når `includeResolvedQueries` er slået til. `includeProcessDetails` slår det til.
 
 ## Streaming
 
@@ -456,17 +501,18 @@ Typiske events:
 
 ### `progress`-stadier omkring filtervalidering
 
-Ved multi-kilde-soegninger (mere end `pubmed` alene) kan der gaa relativt lang tid mellem `rerank` og `finalizeHydrate`, fordi resultaterne her valideres mod PubMed/OpenAlex, foer de endelige resultater hentes. For at undgaa et langt, stille hul i streamen emitteres nu ekstra `progress`-events i denne periode (samme stadienavne som webappens egen fremdriftsvisning):
+Mellem `rerank` og `finalizeHydrate` valideres kandidaterne, før de endelige resultater hentes. I den periode sendes:
 
-- `finalizeValidatePmid`: PMID-kandidater krydsvalideres mod PubMed.
-- `finalizeValidateDoiFetch`: DOI-kandidater hydreres og filter-/regelvalideres via OpenAlex. `total` i payloaden angiver, hvor mange DOI-kandidater der skal behandles.
+- `finalizeValidatePmid`, når der er PMID-kandidater. De kontrolleres mod PubMed-søgningen.
+- `finalizeValidateDoiFetch`, når der er DOI-kandidater. De hydreres via OpenAlex, og filtre og regler tjekkes. `total` er antallet af DOI-kandidater.
 
-Hvert event sendes præcis én gang pr. søgning (ikke gentagne gange), og `message`-feltet er en kort, brugervenlig tekst på det sprog, der er angivet i requesten (`da`/`en`) — beregnet til at kunne vises direkte til en slutbruger, der venter på søgeresultatet:
+Stadiet starter med ét event, der har `message`. Når `includeProcessDetails` er slået til, kan samme stage komme igen som afsluttet. Det event har `status: completed` og behøver ikke en ny `message`. Teksten følger requestens sprog (`da`/`en`) og kommer fra `backend/app/public-search-progress-texts.php`:
 
 | `messageKey` | `message` (da) | `message` (en) |
 |---|---|---|
-| `semanticSearchProgressFinalizeValidatePmid` | "Bekræfter resultaterne hos PubMed." | "Confirming the results with PubMed." |
-| `semanticSearchProgressFinalizeValidateDoiFetch` | "Henter flere detaljer om resultaterne." | "Fetching more details about the results." |
+| `semanticSearchProgressFinalizeValidatePmid` | "Kontrollerer PMID-resultater mod PubMed-søgningen." | "Validating PMID results against the PubMed search." |
+| `semanticSearchProgressFinalizeValidateDoiFetch` | "Henter metadata for DOI-resultater og tjekker filtrene." | "Fetching DOI metadata and checking filters." |
+| `semanticSearchProgressDoiHydrationWarning` | "Nogle eksterne resultater kunne ikke valideres via OpenAlex eller eksisterende Semantic Scholar-data og er derfor ikke medtaget." | "Some external results could not be validated via OpenAlex or existing Semantic Scholar data and are therefore not included." |
 
 Eksempel:
 
@@ -480,13 +526,13 @@ data: {
 data:   "stage": "semanticIntent",
 data:   "language": "da",
 data:   "messageKey": "semanticSearchProgressSemanticIntent",
-data:   "message": "Fortolker soegeintentionen.",
+data:   "message": "Fortolker og tilpasser søgningen til de valgte databaser.",
 data:   "stepId": "semanticIntent",
 data:   "groupId": "prepare",
 data:   "groupKey": "semanticSearchProcessGroupPrepare",
-data:   "groupLabel": "Oversaetter og tilpasser soegningen",
-data:   "label": "Fortolker soegeintentionen.",
-data:   "timestamp": "2026-04-16T12:00:00Z"
+data:   "groupLabel": "Oversætter og tilpasser søgningen",
+data:   "label": "Oversætter og tilpasser søgningen",
+data:   "timestamp": "2026-04-16T12:00:00+00:00"
 data: }
 
 event: result
@@ -511,7 +557,7 @@ Hvert svar (også ved streaming, i `result`-eventet) indeholder et `timing`-obje
 - `startedAt`: tidspunkt (ISO 8601, UTC) for hvornår serveren begyndte at behandle requesten — dvs. før autentificering, rate-limiting og selve søgningen.
 - `completedAt`: tidspunkt (ISO 8601, UTC) for hvornår responsen var færdigbygget, umiddelbart før den sendes til klienten.
 - `durationMs`: forløbet tid i millisekunder mellem `startedAt` og `completedAt`.
-- `durationFormatted`: samme forløbne tid som `durationMs`, men i `tt:mm:ss`-format (fx `"00:00:01"`). Afrundet ned til nærmeste hele sekund.
+- `durationFormatted`: forløbet tid som `tt:mm:ss` (timer:minutter:sekunder, fx `"00:00:01"`). Hele sekunder rundes ned. `durationMs` rundes til nærmeste millisekund, så de to tal kan afvige med under ét sekund.
 
 `durationMs` måler serverens behandlingstid — herunder evt. opslag hos PubMed/OpenAlex/Semantic Scholar/Elicit — men ikke netværkstiden til og fra klienten. Ved cache-hit (se `diagnostics.cache.hit`, hvis `includeDiagnostics=true`) vil `durationMs` typisk være meget lavt, da søgningen ikke skal gå til upstream-kilderne igen.
 
@@ -532,7 +578,7 @@ PubMed abstracts hydreres via NLM. DOI-bårne resultater hydreres via OpenAlex.
 
 ## Berigede felter
 
-Hvert resultat i `results` indeholder desuden en fast, ensartet mængde berigede felter, uanset om resultatet er hydreret via PubMed (`type=pmid`) eller OpenAlex (`type=doi`). Nøglerne er altid til stede; kun værdien varierer efter, hvad kilden kan levere.
+Hvert resultat i `results` indeholder de samme berigede felter, uanset om det er hydreret via PubMed (`type=pmid`) eller OpenAlex (`type=doi`). `history` er undtagelsen: nøglen findes kun på PubMed-resultater, og kun når Entrez-datoen er kendt. DOI-resultater har ikke `history`.
 
 - `authors`: liste af `{ name, familyName, givenName, initials }`. `[]` hvis ingen forfattere er fundet.
   - `name` er et **ensartet** visningsnavn på formen `"Efternavn Initialer"` (fx `"Setzler M"`), uanset om resultatet er hydreret via PubMed eller OpenAlex. Det løser den tidligere uensartethed, hvor PubMed typisk gav `"Setzler M"` og OpenAlex gav `"Mark Setzler"`.
@@ -569,7 +615,7 @@ Hvert resultat i `results` indeholder desuden en fast, ensartet mængde berigede
 
 - `number` (default `1`): 1-baseret sidenummer
 - `size` (default `25`, max `100`): resultater pr. side
-- `offset` (valgfri, `>= 0`): absolut offset i den ordnede kandidatliste. Når sat, bruges den i stedet for `(number - 1) * size`
+- `offset` (valgfri, `>= 0`): absolut offset i den ordnede kandidatliste. Når sat, bruges den i stedet for `(number - 1) * size`. SearchForm bruger den sammen med `resultSetId`, når side-størrelsen øges, så allerede viste træffere ikke hydreres igen.
 
 ### `responseOptions.includeProcessDetails`
 
