@@ -6,6 +6,13 @@
  * Run: php scripts/editor-login-rate-limit-smoke-test.php
  */
 
+$configPath = __DIR__ . '/../backend/config/config.php';
+$legacyConfigPath = __DIR__ . '/../backend/config.php';
+if (!is_file($configPath) && !is_file($legacyConfigPath)) {
+    echo "SKIP: editor config is not present\n";
+    exit(0);
+}
+
 require_once __DIR__ . '/../backend/app/editor-auth.php';
 
 function assertTrue(bool $condition, string $message): void
