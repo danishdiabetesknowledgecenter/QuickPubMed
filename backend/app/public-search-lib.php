@@ -72,18 +72,6 @@ if (!function_exists('muginPublicSearchSafeJsonEncode')) {
     }
 }
 
-if (!function_exists('muginPublicSearchSafePrettyJsonEncode')) {
-    /**
-     * @param mixed $value
-     * @return string
-     */
-    function muginPublicSearchSafePrettyJsonEncode($value): string
-    {
-        $encoded = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-        return is_string($encoded) ? $encoded : '{}';
-    }
-}
-
 if (!function_exists('muginPublicSearchNormalizePmid')) {
     /**
      * @param mixed $value
@@ -334,6 +322,41 @@ if (!function_exists('muginPublicSearchMaybeCleanupCacheNamespace')) {
     }
 }
 
+if (!function_exists('muginPublicSearchEncodeCachePayload')) {
+    /**
+     * JSON when a round-trip returns the same value. Otherwise the previous serialize format.
+     *
+     * @param array<string,mixed> $payload
+     */
+    function muginPublicSearchEncodeCachePayload(array $payload): string
+    {
+        $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (is_string($json)) {
+            $decoded = json_decode($json, true);
+            if ($decoded === $payload) {
+                return $json;
+            }
+        }
+        return serialize($payload);
+    }
+}
+
+if (!function_exists('muginPublicSearchDecodeCachePayload')) {
+    /**
+     * @param string $raw
+     * @return array<string,mixed>|false
+     */
+    function muginPublicSearchDecodeCachePayload(string $raw)
+    {
+        if ($raw !== '' && ($raw[0] === '{' || $raw[0] === '[')) {
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : false;
+        }
+        $decoded = @unserialize($raw, ['allowed_classes' => [stdClass::class]]);
+        return is_array($decoded) ? $decoded : false;
+    }
+}
+
 if (!function_exists('muginPublicSearchReadCacheValue')) {
     /**
      * @param string $namespace
@@ -349,7 +372,7 @@ if (!function_exists('muginPublicSearchReadCacheValue')) {
         }
         $raw = @file_get_contents($path);
         $payload = is_string($raw) && $raw !== ''
-            ? @unserialize($raw, ['allowed_classes' => [stdClass::class]])
+            ? muginPublicSearchDecodeCachePayload($raw)
             : false;
         if (!is_array($payload)) {
             @unlink($path);
@@ -497,7 +520,7 @@ if (!function_exists('muginPublicSearchWriteCacheValue')) {
             return;
         }
         $path = muginPublicSearchBuildCacheFilePath($namespace, $cacheKey);
-        $payload = serialize([
+        $payload = muginPublicSearchEncodeCachePayload([
             'expiresAt' => time() + $ttlSeconds,
             'value' => $value,
         ]);
@@ -629,27 +652,6 @@ if (!function_exists('muginPublicSearchStartEventStream')) {
         }
         @ob_implicit_flush(true);
         ignore_user_abort(true);
-    }
-}
-
-if (!function_exists('muginPublicSearchEmitSseEvent')) {
-    /**
-     * @param string $event
-     * @param array<string,mixed> $payload
-     * @return void
-     */
-    function muginPublicSearchEmitSseEvent(string $event, array $payload): void
-    {
-        echo 'event: ' . trim($event) . "\n";
-        // Pretty-print so each JSON line is a separate `data:` line (readable in
-        // the browser; frontend rejoins data lines before JSON.parse).
-        $encoded = muginPublicSearchSafePrettyJsonEncode($payload);
-        foreach (preg_split("/\r\n|\r|\n/", $encoded) ?: [] as $line) {
-            echo 'data: ' . $line . "\n";
-        }
-        echo "\n";
-        @ob_flush();
-        flush();
     }
 }
 
@@ -10126,27 +10128,6 @@ if (!function_exists('muginPublicSearchFetchSemanticScholarSourceResult')) {
     }
 }
 
-if (!function_exists('muginPublicSearchNormalizeOpenAlexPmid')) {
-    /**
-     * OpenAlex returns ids.pmid as a full URL (e.g. https://pubmed.ncbi.nlm.nih.gov/12345),
-     * unlike other sources which send a bare numeric string. The shared
-     * muginPublicSearchNormalizePmid() requires an exact numeric match and would drop
-     * these, so OpenAlex needs its own digit-extracting normalizer (mirrors
-     * muginNormalizeOpenAlexPmid() in backend/api/OpenAlexSearch.php).
-     *
-     * @param mixed $value
-     * @return string
-     */
-    function muginPublicSearchNormalizeOpenAlexPmid($value): string
-    {
-        $raw = trim((string) $value);
-        if ($raw === '') {
-            return '';
-        }
-        return preg_match('/(\d+)/', $raw, $matches) === 1 ? $matches[1] : '';
-    }
-}
-
 if (!function_exists('muginPublicSearchBuildOpenAlexSourceRequestSpec')) {
     /**
      * Builds the {url, options} spec for the OpenAlex /works search request.
@@ -10294,7 +10275,7 @@ if (!function_exists('muginPublicSearchFetchOpenAlexSourceResultSingle')) {
                 continue;
             }
             $ids = isset($work['ids']) && is_array($work['ids']) ? $work['ids'] : [];
-            $pmid = muginPublicSearchNormalizeOpenAlexPmid($work['pmid'] ?? ($ids['pmid'] ?? ''));
+            $pmid = muginNormalizeOpenAlexPmidValue($work['pmid'] ?? ($ids['pmid'] ?? ''));
             $doi = muginPublicSearchNormalizeDoi($work['doi'] ?? ($ids['doi'] ?? ''));
             if ($pmid === '' && $doi === '') {
                 continue;
@@ -10771,70 +10752,9 @@ if (!function_exists('muginPublicSearchStoreOpenAlexWorkCache')) {
     }
 }
 
-if (!function_exists('muginPublicSearchFetchOpenAlexWorkByCandidate')) {
-    /**
-     * @param array<string,mixed> $candidate
-     * @param string $domain
-     * @return ?array<string,mixed>
-     */
-    function muginPublicSearchFetchOpenAlexWorkByCandidate(array $candidate, string $domain = ''): ?array
-    {
-        $url = muginPublicSearchGetOpenAlexWorkLookupUrl($candidate, $domain);
-        if ($url === '') {
-            return null;
-        }
-        $cacheRef = muginPublicSearchResolveOpenAlexWorkCacheRef($candidate);
-        if (
-            $cacheRef !== null
-            && function_exists('muginReadOpenAlexWorkCache')
-            && muginGetOpenAlexWorkCacheTtl(false) > 0
-        ) {
-            $cacheEntry = muginReadOpenAlexWorkCache(
-                $cacheRef['type'],
-                $cacheRef['value'],
-                $domain,
-                'full'
-            );
-            if (($cacheEntry['hit'] ?? false) === true) {
-                $cachedWork = function_exists('muginNormalizeOpenAlexCachedWork')
-                    ? muginNormalizeOpenAlexCachedWork($cacheEntry['value'] ?? null)
-                    : (is_array($cacheEntry['value'] ?? null) ? $cacheEntry['value'] : null);
-                if (is_array($cachedWork)) {
-                    return $cachedWork;
-                }
-            }
-        }
-        muginThrottleRequestRate('openalex', 1);
-        $result = muginHttpRequest($url, [
-            'method' => 'GET',
-            'timeout' => 30,
-            'headers' => ['Accept: application/json'],
-            'user_agent' => 'MuginScholar/1.0',
-        ]);
-        if (!muginPublicSearchIsHttpResultOk($result)) {
-            return null;
-        }
-        $decoded = json_decode((string) $result['body'], true);
-        if (!is_array($decoded)) {
-            return null;
-        }
-        if (isset($decoded['results'][0]) && is_array($decoded['results'][0])) {
-            muginPublicSearchStoreOpenAlexWorkCache($decoded['results'][0], $domain);
-            return $decoded['results'][0];
-        }
-        if (isset($decoded['id']) && is_string($decoded['id'])) {
-            muginPublicSearchStoreOpenAlexWorkCache($decoded, $domain);
-            return $decoded;
-        }
-        return null;
-    }
-}
-
 if (!function_exists('muginPublicSearchParseOpenAlexWorkLookupResponse')) {
     /**
-     * Parses one muginHttpRequest()/muginHttpRequestMulti() result the same way
-     * muginPublicSearchFetchOpenAlexWorkByCandidate() does, so both the single
-     * and the batched/parallel lookup paths interpret responses identically.
+     * Parses one muginHttpRequest()/muginHttpRequestMulti() result into an OpenAlex work.
      *
      * @param array{ok:bool,status:int,body:string} $result
      * @return ?array<string,mixed>
@@ -10860,13 +10780,11 @@ if (!function_exists('muginPublicSearchParseOpenAlexWorkLookupResponse')) {
 
 if (!function_exists('muginPublicSearchFetchOpenAlexWorksByCandidatesParallel')) {
     /**
-     * Batched/parallel counterpart to muginPublicSearchFetchOpenAlexWorkByCandidate(),
-     * used when many DOI-only candidates need per-candidate OpenAlex hydration
+     * Hydrates many DOI-only candidates via per-candidate OpenAlex lookups
      * (muginPublicSearchBuildAllowedCandidateKeys()). Each candidate still gets
      * its own OpenAlex request (same URLs, same cache keys, same response
-     * parsing as the single-candidate function above — this only changes HOW
-     * the requests are dispatched, not what is requested or how responses are
-     * interpreted), but requests are fired concurrently via muginHttpRequestMulti()
+     * parsing as muginPublicSearchParseOpenAlexWorkLookupResponse()). Requests
+     * are fired concurrently via muginHttpRequestMulti()
      * in bounded waves instead of one blocking muginHttpRequest() call per
      * candidate. This is what makes hydrating e.g. 300 DOI-only candidates (a
      * realistic count for a semanticScholar/elicit-only search with no PubMed

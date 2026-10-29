@@ -4658,9 +4658,6 @@
       isSelected(option) {
         return this.selected.some((selectedOption) => selectedOption.id === option.id);
       },
-      isHiddenTopic(topicId) {
-        return this.hideTopics.indexOf(topicId) !== -1;
-      },
       isSubjectVissible(subject) {
         const subjectRect = subject.getBoundingClientRect();
 
@@ -6735,9 +6732,6 @@
         }
         return null;
       },
-      getElicitRateLimitResetDate(rateLimit) {
-        return this.getSourceRateLimitResetDate(rateLimit);
-      },
       logSourceRateLimitInfo(sourceKey, rateLimit) {
         const signature = JSON.stringify([
           rateLimit?.limit ?? null,
@@ -6792,9 +6786,6 @@
           windowType,
           resetMeaning,
         });
-      },
-      logElicitRateLimitInfo(rateLimit) {
-        this.logSourceRateLimitInfo("elicit", rateLimit);
       },
       normalizeSourceResult(source, query, payload, error = "") {
         if (!payload || typeof payload !== "object") {
@@ -6919,9 +6910,6 @@
       },
       isSearchFlowDebugRunActive() {
         return this.muginSearchFlowDebugApi?.isRunActive?.() === true;
-      },
-      getSearchFlowDebugConsolePrefix() {
-        return this.muginSearchFlowDebugApi?.getConsolePrefix?.() || "[SearchFlowDebug][DropdownWrapper]";
       },
       beginSearchFlowDebugStep(title) {
         return this.muginSearchFlowDebugApi?.beginStep?.(title) || null;
@@ -9140,10 +9128,6 @@
         });
         return this.createEmptySourceResult(source, query, message);
       },
-      async fetchSemanticScholarPmids(query) {
-        const result = await this.fetchSemanticScholarResults(query);
-        return result.pmids;
-      },
       /**
        * Get selected options for an optiongroup by optiongroup id.
        * @param {string} groupId - The ID of the option group.
@@ -9225,10 +9209,6 @@
           }
         }
         return "unknown";
-      },
-      getOptionClassName(option) {
-        // Return the 'cssClass' if it exists, otherwise return an empty string
-        return option.cssClass ? `mugin_${option.cssClass}` : "";
       },
       getShouldPreventLeftRightDefault() {
         const dropdownRef = this.$refs.multiselect;

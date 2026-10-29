@@ -121,11 +121,6 @@ export function getTelemetryThresholds() {
   return initState().thresholds;
 }
 
-export function isTelemetryEnabled() {
-  const s = initState();
-  return s.enabled && !s.circuitOpen;
-}
-
 /**
  * SHA-256 using Web Crypto API. Falls back to a simple non-crypto hash
  * when crypto.subtle is not available (e.g. http:// in some browsers) —

@@ -172,20 +172,3 @@ export function adaptUnifiedProcessDetails(processDetails, options = {}) {
     processStepDetails: Array.from(processByStepId.values()),
   };
 }
-
-/**
- * Applies adapted process details into SearchForm reactive state helpers.
- */
-export function applyAdaptedProcessDetailsToSearchForm(form, adapted) {
-  if (!form || !adapted) return;
-  if (Array.isArray(adapted.sourceQueryDetails)) {
-    form.semanticSourceQueryDetails = adapted.sourceQueryDetails;
-  }
-  if (Array.isArray(adapted.processStepDetails)) {
-    adapted.processStepDetails.forEach((detail) => {
-      if (typeof form.setSearchProcessStepDetail === "function") {
-        form.setSearchProcessStepDetail(detail.stepId, detail.payload, detail.label || "");
-      }
-    });
-  }
-}

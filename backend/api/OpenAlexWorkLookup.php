@@ -16,18 +16,9 @@ muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
 
-function muginIsLocalOpenAlexLookupRequest(): bool
-{
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
-
 function muginOpenAlexWorkLocalDevProxyRequest(string $lookupValue, string $apiKey = '', string $mailto = ''): array
 {
-    if (!muginIsLocalOpenAlexLookupRequest()) {
+    if (!muginIsLocalDevProxyHost()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -76,7 +67,7 @@ function muginOpenAlexWorkLocalDevProxyRequest(string $lookupValue, string $apiK
 
 function muginOpenAlexWorkListLocalDevProxyRequest(array $requestParams): array
 {
-    if (!muginIsLocalOpenAlexLookupRequest()) {
+    if (!muginIsLocalDevProxyHost()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -128,10 +119,10 @@ if (empty($params)) {
     }
 }
 
-$doi = muginNormalizeOpenAlexLookupDoi($params['doi'] ?? '');
+$doi = muginNormalizeDoiValue($params['doi'] ?? '');
 $doisInput = $params['dois'] ?? [];
 $dois = is_array($doisInput) ? $doisInput : ($doisInput !== '' ? [$doisInput] : []);
-$normalizedDois = array_values(array_unique(array_filter(array_map('muginNormalizeOpenAlexLookupDoi', $dois))));
+$normalizedDois = array_values(array_unique(array_filter(array_map('muginNormalizeDoiValue', $dois))));
 $openAlexId = trim((string) ($params['openAlexId'] ?? ''));
 $openAlexIdsInput = $params['openAlexIds'] ?? [];
 $openAlexIds = is_array($openAlexIdsInput) ? $openAlexIdsInput : ($openAlexIdsInput !== '' ? [$openAlexIdsInput] : []);
@@ -239,7 +230,7 @@ if ($isBatchLookup) {
         if (!is_array($work)) {
             continue;
         }
-        $workDoi = muginNormalizeOpenAlexLookupDoi($work['doi'] ?? ($work['ids']['doi'] ?? ''));
+        $workDoi = muginNormalizeDoiValue($work['doi'] ?? ($work['ids']['doi'] ?? ''));
         $workOpenAlexId = trim((string) ($work['id'] ?? ''));
         if ($workDoi === '' && $workOpenAlexId === '') {
             continue;

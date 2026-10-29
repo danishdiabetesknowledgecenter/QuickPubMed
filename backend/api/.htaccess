@@ -3,6 +3,7 @@
 <IfModule mod_setenvif.c>
     # Apache-level fallback for production hosts where Origin may not reach PHP reliably.
     # Keep this as an explicit first-party allowlist; do not reflect arbitrary origins.
+    # The same hosts are listed in getAllowedOrigin() in backend/app/helpers.php.
     SetEnvIfNoCase Origin "^https://([a-z0-9-]+\.)?(mugin\.dk|mugin\.ai|muginscholar\.dk|videncenterfordiabetes\.dk|danishdiabetesknowledgecenter\.dk|nempubmed\.dk|quickpubmed\.dk)$" MUGIN_CORS_ORIGIN=$0
     SetEnvIfNoCase Origin "^http://(localhost|127\.0\.0\.1)(:[0-9]+)?$" MUGIN_CORS_ORIGIN=$0
 </IfModule>

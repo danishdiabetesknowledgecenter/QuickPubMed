@@ -23,15 +23,6 @@ muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 // request, so we cap batches at 50.
 const MUGIN_OPENALEX_AUTHORITY_BATCH_LIMIT = 50;
 
-function muginIsLocalOpenAlexAuthorityRequest(): bool
-{
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
-
 /**
  * @param string $path Path under /openalex-api (e.g. 'authors' or 'sources')
  * @param array<string,mixed> $requestParams
@@ -39,7 +30,7 @@ function muginIsLocalOpenAlexAuthorityRequest(): bool
  */
 function muginOpenAlexAuthorityLocalDevProxyRequest(string $path, array $requestParams): array
 {
-    if (!muginIsLocalOpenAlexAuthorityRequest()) {
+    if (!muginIsLocalDevProxyHost()) {
         return [
             'ok' => false,
             'status' => 0,

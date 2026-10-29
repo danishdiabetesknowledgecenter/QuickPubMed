@@ -24,7 +24,7 @@ if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     exit;
 }
 
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = json_decode(muginReadBoundedRequestBody(muginOpenAiProxyMaxBodyBytes()), true);
 if (!is_array($input)) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid JSON input']);

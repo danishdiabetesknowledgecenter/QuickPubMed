@@ -1,8 +1,6 @@
 <?php
 /**
  * Shared PMID/DOI normalizers (Fase 3).
- *
- * Call-sites may keep public-search-prefixed wrappers; those should delegate here.
  */
 
 if (!function_exists('muginNormalizePmidValue')) {
@@ -14,6 +12,24 @@ if (!function_exists('muginNormalizePmidValue')) {
     {
         $pmid = trim((string) $value);
         return preg_match('/^[0-9]+$/', $pmid) === 1 ? $pmid : '';
+    }
+}
+
+if (!function_exists('muginNormalizeOpenAlexPmidValue')) {
+    /**
+     * OpenAlex returns ids.pmid as a full URL (e.g. https://pubmed.ncbi.nlm.nih.gov/12345).
+     * muginNormalizePmidValue() requires the whole string to be digits and would drop these.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    function muginNormalizeOpenAlexPmidValue($value): string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return '';
+        }
+        return preg_match('/(\d+)/', $raw, $matches) === 1 ? $matches[1] : '';
     }
 }
 
@@ -83,19 +99,6 @@ if (!function_exists('muginParseSelectedIdentifierToken')) {
         }
         $doi = muginNormalizeDoiValue($raw);
         return muginIsPlausibleDoiValue($doi) ? ['type' => 'doi', 'value' => $doi] : [];
-    }
-}
-
-if (!function_exists('muginFormatSelectedIdentifierToken')) {
-    function muginFormatSelectedIdentifierToken(string $type, string $value): string
-    {
-        if ($type === 'pmid' && $value !== '') {
-            return 'pmid:' . $value;
-        }
-        if ($type === 'doi' && $value !== '') {
-            return 'doi:' . $value;
-        }
-        return '';
     }
 }
 

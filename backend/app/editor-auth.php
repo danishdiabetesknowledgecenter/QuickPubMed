@@ -162,12 +162,47 @@ function editorRequireMethod(string $method): void
 }
 
 /**
- * Check whether request uses HTTPS (directly or via reverse proxy header).
+ * Connection address that is allowed to assert X-Forwarded-Proto.
+ * Loopback and private addresses cover an on-host or internal proxy.
+ * Public proxy addresses must be listed in EDITOR_TRUSTED_PROXIES.
+ */
+function editorForwardedProtoIsTrusted(): bool
+{
+    $remoteAddr = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+    if ($remoteAddr === '') {
+        return false;
+    }
+
+    if (defined('EDITOR_TRUSTED_PROXIES') && is_array(EDITOR_TRUSTED_PROXIES)) {
+        foreach (EDITOR_TRUSTED_PROXIES as $proxy) {
+            if (is_string($proxy) && trim($proxy) === $remoteAddr) {
+                return true;
+            }
+        }
+    }
+
+    if (filter_var($remoteAddr, FILTER_VALIDATE_IP) === false) {
+        return false;
+    }
+
+    return filter_var(
+        $remoteAddr,
+        FILTER_VALIDATE_IP,
+        FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+    ) === false;
+}
+
+/**
+ * Check whether request uses HTTPS (directly or via a trusted reverse proxy).
  */
 function editorIsHttpsRequest(): bool
 {
     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
         return true;
+    }
+
+    if (!editorForwardedProtoIsTrusted()) {
+        return false;
     }
 
     $forwardedProto = strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '');
@@ -315,38 +350,57 @@ function editorRateLimitFilePath(): string
 }
 
 /**
- * Load rate limit data.
+ * Read and optionally write the login counter while holding an exclusive lock.
+ * A missing or unlockable store is treated as empty, matching the previous fail-open path.
+ *
+ * @param callable(array): array{data: array, write: bool, value: mixed} $mutator
+ * @return mixed
  */
-function editorLoadRateLimitData(): array
+function editorUpdateRateLimitData(callable $mutator, bool $createIfMissing)
 {
     $path = editorRateLimitFilePath();
-    if (!is_file($path)) {
-        return [];
+    if (!$createIfMissing && !is_file($path)) {
+        $update = $mutator([]);
+        return $update['value'];
     }
 
-    $raw = file_get_contents($path);
-    if ($raw === false || $raw === '') {
-        return [];
+    $fp = @fopen($path, $createIfMissing ? 'c+' : 'r+');
+    if ($fp === false) {
+        $update = $mutator([]);
+        return $update['value'];
     }
 
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : [];
-}
+    $locked = false;
+    try {
+        if (!flock($fp, LOCK_EX)) {
+            $update = $mutator([]);
+            return $update['value'];
+        }
+        $locked = true;
+        rewind($fp);
+        $raw = stream_get_contents($fp);
+        $data = is_string($raw) && $raw !== '' ? json_decode($raw, true) : [];
+        if (!is_array($data)) {
+            $data = [];
+        }
 
-/**
- * Persist rate limit data atomically.
- */
-function editorSaveRateLimitData(array $data): void
-{
-    $path = editorRateLimitFilePath();
-    $tmp = $path . '.tmp';
-    $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) {
-        return;
+        $update = $mutator($data);
+        if (!empty($update['write']) && is_array($update['data'])) {
+            $json = json_encode($update['data'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if ($json !== false) {
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, $json);
+                fflush($fp);
+            }
+        }
+        return $update['value'];
+    } finally {
+        if ($locked) {
+            flock($fp, LOCK_UN);
+        }
+        fclose($fp);
     }
-
-    file_put_contents($tmp, $json, LOCK_EX);
-    @rename($tmp, $path);
 }
 
 /**
@@ -354,21 +408,22 @@ function editorSaveRateLimitData(array $data): void
  */
 function editorIsRateLimited(string $key, int $maxAttempts = 8, int $windowSeconds = 900): array
 {
-    $now = time();
-    $data = editorLoadRateLimitData();
-    $entry = $data[$key] ?? ['count' => 0, 'first_attempt' => $now];
-    $firstAttempt = (int) ($entry['first_attempt'] ?? $now);
-    $count = (int) ($entry['count'] ?? 0);
+    return editorUpdateRateLimitData(static function (array $data) use ($key, $maxAttempts, $windowSeconds): array {
+        $now = time();
+        $entry = $data[$key] ?? ['count' => 0, 'first_attempt' => $now];
+        $firstAttempt = (int) ($entry['first_attempt'] ?? $now);
+        $count = (int) ($entry['count'] ?? 0);
 
-    if (($now - $firstAttempt) > $windowSeconds) {
-        return ['limited' => false, 'retry_after' => 0];
-    }
+        if (($now - $firstAttempt) > $windowSeconds) {
+            $value = ['limited' => false, 'retry_after' => 0];
+        } elseif ($count >= $maxAttempts) {
+            $value = ['limited' => true, 'retry_after' => max(1, $windowSeconds - ($now - $firstAttempt))];
+        } else {
+            $value = ['limited' => false, 'retry_after' => 0];
+        }
 
-    if ($count >= $maxAttempts) {
-        return ['limited' => true, 'retry_after' => max(1, $windowSeconds - ($now - $firstAttempt))];
-    }
-
-    return ['limited' => false, 'retry_after' => 0];
+        return ['data' => $data, 'write' => false, 'value' => $value];
+    }, false);
 }
 
 /**
@@ -376,19 +431,20 @@ function editorIsRateLimited(string $key, int $maxAttempts = 8, int $windowSecon
  */
 function editorRegisterFailedAttempt(string $key): void
 {
-    $now = time();
-    $data = editorLoadRateLimitData();
-    $entry = $data[$key] ?? ['count' => 0, 'first_attempt' => $now];
-    $firstAttempt = (int) ($entry['first_attempt'] ?? $now);
+    editorUpdateRateLimitData(static function (array $data) use ($key): array {
+        $now = time();
+        $entry = $data[$key] ?? ['count' => 0, 'first_attempt' => $now];
+        $firstAttempt = (int) ($entry['first_attempt'] ?? $now);
 
-    if (($now - $firstAttempt) > 900) {
-        $entry = ['count' => 1, 'first_attempt' => $now];
-    } else {
-        $entry['count'] = (int) ($entry['count'] ?? 0) + 1;
-    }
+        if (($now - $firstAttempt) > 900) {
+            $entry = ['count' => 1, 'first_attempt' => $now];
+        } else {
+            $entry['count'] = (int) ($entry['count'] ?? 0) + 1;
+        }
 
-    $data[$key] = $entry;
-    editorSaveRateLimitData($data);
+        $data[$key] = $entry;
+        return ['data' => $data, 'write' => true, 'value' => null];
+    }, true);
 }
 
 /**
@@ -396,11 +452,13 @@ function editorRegisterFailedAttempt(string $key): void
  */
 function editorResetFailedAttempts(string $key): void
 {
-    $data = editorLoadRateLimitData();
-    if (isset($data[$key])) {
+    editorUpdateRateLimitData(static function (array $data) use ($key): array {
+        if (!isset($data[$key])) {
+            return ['data' => $data, 'write' => false, 'value' => null];
+        }
         unset($data[$key]);
-        editorSaveRateLimitData($data);
-    }
+        return ['data' => $data, 'write' => true, 'value' => null];
+    }, false);
 }
 
 /**
@@ -426,12 +484,14 @@ function editorResolveClientAddress(): array
 }
 
 /**
- * Build throttling fingerprint.
+ * Build throttling fingerprint from the connection address only.
+ * X-Forwarded-For stays in the audit log via editorResolveClientAddress(),
+ * but it must not mint a fresh login counter.
  */
 function editorBuildRateLimitKey(string $username): string
 {
-    $client = editorResolveClientAddress();
-    return hash('sha256', strtolower(trim($username)) . '|' . $client['chain']);
+    $remoteAddr = trim((string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    return hash('sha256', strtolower(trim($username)) . '|' . $remoteAddr);
 }
 
 /**
@@ -515,6 +575,25 @@ function editorConfiguredUsers(): array
 }
 
 /**
+ * Hash used only so a missing user takes the same password_verify cost as a real one.
+ * A configured editor hash is preferred, because its cost matches this installation.
+ */
+function editorTimingPasswordHash(array $users): string
+{
+    foreach ($users as $user) {
+        if (!is_array($user)) {
+            continue;
+        }
+        $hash = (string) ($user['password_hash'] ?? '');
+        if ($hash !== '') {
+            return $hash;
+        }
+    }
+
+    return '$2y$12$VsHuvhAHUfmEsKiS5bqlQOz27WxPBmDliEzhK.tgM1MId3puIdwhK';
+}
+
+/**
  * Verify user credentials.
  *
  * @return array{ok: bool, user: ?array<string, mixed>}
@@ -522,21 +601,17 @@ function editorConfiguredUsers(): array
 function editorAuthenticateCredentials(string $username, string $password): array
 {
     $users = editorConfiguredUsers();
-    if (empty($users) || !isset($users[$username])) {
+    $knownUser = (isset($users[$username]) && is_array($users[$username])) ? $users[$username] : null;
+    $ownHash = is_array($knownUser) ? (string) ($knownUser['password_hash'] ?? '') : '';
+    $verifyHash = $ownHash !== '' ? $ownHash : editorTimingPasswordHash($users);
+    $passwordMatches = $verifyHash !== '' && password_verify($password, $verifyHash);
+    $disabled = is_array($knownUser) && !empty($knownUser['disabled']);
+
+    if (!is_array($knownUser) || $disabled || $ownHash === '' || !$passwordMatches) {
         return ['ok' => false, 'user' => null];
     }
 
-    $user = $users[$username];
-    if (!empty($user['disabled'])) {
-        return ['ok' => false, 'user' => null];
-    }
-
-    $hash = (string) ($user['password_hash'] ?? '');
-    if ($hash === '' || !password_verify($password, $hash)) {
-        return ['ok' => false, 'user' => null];
-    }
-
-    return ['ok' => true, 'user' => $user];
+    return ['ok' => true, 'user' => $knownUser];
 }
 
 /**

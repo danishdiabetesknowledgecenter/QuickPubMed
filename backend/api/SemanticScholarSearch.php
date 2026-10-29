@@ -10,6 +10,7 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
+require_once dirname(__DIR__) . '/app/identifiers.php';
 
 muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '180');
@@ -33,15 +34,6 @@ function muginGetSemanticScholarApiKey(): string
     return $configuredKey;
 }
 
-function muginIsLocalSemanticScholarRequest(): bool
-{
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
-
 /**
  * Local dev fallback through Vite proxy (http), still backend-initiated.
  *
@@ -59,7 +51,7 @@ function muginSemanticScholarLocalDevProxyRequest(
 ): array
 {
     $hosts = ['localhost', '127.0.0.1'];
-    $isLocalRequest = muginIsLocalSemanticScholarRequest();
+    $isLocalRequest = muginIsLocalDevProxyHost();
     $lastStatus = 0;
     $lastResponseHeaders = [];
     if (!$isLocalRequest) {
@@ -284,23 +276,6 @@ function muginBuildSemanticScholarSearchQueryString(
 }
 
 /**
- * Normalize DOI values from Semantic Scholar externalIds.
- *
- * @param mixed $value
- * @return string
- */
-function muginNormalizeSemanticScholarDoi($value): string
-{
-    $doi = trim((string) $value);
-    if ($doi === '') {
-        return '';
-    }
-    $doi = preg_replace('~^https?://(dx\.)?doi\.org/~i', '', $doi);
-    $doi = preg_replace('~^doi:\s*~i', '', (string) $doi);
-    return trim((string) $doi);
-}
-
-/**
  * Extract normalized candidates from a Semantic Scholar response payload.
  *
  * @param array<string,mixed> $decoded
@@ -328,7 +303,7 @@ function muginExtractSemanticScholarCandidates(array $decoded, int $rankOffset =
         if ($pmid !== '' && !preg_match('/^[0-9]+$/', $pmid)) {
             $pmid = '';
         }
-        $doi = muginNormalizeSemanticScholarDoi($externalIds['DOI'] ?? '');
+        $doi = muginNormalizeDoiValue($externalIds['DOI'] ?? '');
         // Non-DOI/non-PMID S2 records are intentionally dropped: cross-source
         // id-matching (e.g. mapping S2 paperId to OpenAlex works) is out of
         // scope for this milestone. S2 contributes only as PMID/DOI-keyed
@@ -421,7 +396,7 @@ function muginCollectSemanticScholarDroppedRecords(array $decoded, int $rankOffs
         if ($pmid !== '' && !preg_match('/^[0-9]+$/', $pmid)) {
             $pmid = '';
         }
-        $doi = muginNormalizeSemanticScholarDoi($externalIds['DOI'] ?? '');
+        $doi = muginNormalizeDoiValue($externalIds['DOI'] ?? '');
         if ($pmid !== '' || $doi !== '') {
             continue;
         }
@@ -478,7 +453,7 @@ function muginSemanticScholarFetchBatch(
     $lastStatus = 0;
     $lastResponseHeaders = [];
 
-    if (muginIsLocalSemanticScholarRequest()) {
+    if (muginIsLocalDevProxyHost()) {
         $localDevProxyResult = muginSemanticScholarLocalDevProxyRequest(
             $query,
             $limit,

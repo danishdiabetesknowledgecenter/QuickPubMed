@@ -24,22 +24,13 @@ muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 // (1000 × ~9 chars ≈ 9 KB which exceeds some 8 KB limits).
 const MUGIN_ICITE_BATCH_LIMIT = 500;
 
-function muginIsLocalICiteRequest(): bool
-{
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
-
 /**
  * @param array<int,string> $pmids
  * @return array{ok: bool, status: int, body: string, error: string}
  */
 function muginICiteLocalDevProxyRequest(array $pmids): array
 {
-    if (!muginIsLocalICiteRequest()) {
+    if (!muginIsLocalDevProxyHost()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -97,7 +88,7 @@ function muginICiteFetchBatch(array $pmids): array
     ]);
     $headers = ['Accept: application/json'];
 
-    if (muginIsLocalICiteRequest()) {
+    if (muginIsLocalDevProxyHost()) {
         $localDevProxyResult = muginICiteLocalDevProxyRequest($pmids);
         if ($localDevProxyResult['ok']) {
             return $localDevProxyResult;

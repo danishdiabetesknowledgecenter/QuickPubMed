@@ -4,22 +4,7 @@
  */
 
 require_once dirname(__DIR__) . '/file-cache.php';
-
-if (!function_exists('muginNormalizeOpenAlexLookupDoi')) {
-    /**
-     * @param mixed $value
-     */
-    function muginNormalizeOpenAlexLookupDoi($value): string
-    {
-        $doi = trim((string) $value);
-        if ($doi === '') {
-            return '';
-        }
-        $doi = preg_replace('~^https?://(dx\.)?doi\.org/~i', '', $doi);
-        $doi = preg_replace('~^doi:\s*~i', '', (string) $doi);
-        return trim((string) $doi);
-    }
-}
+require_once dirname(__DIR__) . '/identifiers.php';
 
 if (!function_exists('muginNormalizeOpenAlexLookupId')) {
     /**
@@ -81,7 +66,7 @@ if (!function_exists('muginNormalizeOpenAlexWorkLookupEntry')) {
             ? ($value['openAlexId'] ?? ($work['id'] ?? ''))
             : '';
         return [
-            'doi' => muginNormalizeOpenAlexLookupDoi($doiSource),
+            'doi' => muginNormalizeDoiValue($doiSource),
             'openAlexId' => trim((string) $openAlexIdSource),
             'work' => $work,
         ];

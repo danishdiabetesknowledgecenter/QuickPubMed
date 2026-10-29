@@ -52,11 +52,6 @@ const CLINICAL_TRIAL_TITLE_PATTERNS = [
 
 const REVIEW_TITLE_PATTERNS = [/\bnarrative review\b/i, /\bscoping review\b/i, /\breview article\b/i];
 
-function toFiniteInt(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.round(number) : null;
-}
-
 function normalizeString(value) {
   return String(value || "").trim();
 }
@@ -288,14 +283,6 @@ export function classifyPublicationType(entry, options = {}) {
   };
 }
 
-export function classifyMergedCandidates(entries, options = {}) {
-  const allowListCache = buildAllowListLookup(options.guidelinePublisherAllowList || []);
-  const enrichedOptions = { ...options, __allowListCache: allowListCache };
-  return (Array.isArray(entries) ? entries : []).map((entry) =>
-    classifyPublicationType(entry, enrichedOptions)
-  );
-}
-
 export const CONFIDENCE_COEFFICIENTS = Object.freeze({
   high: 1.0,
   medium: 0.7,
@@ -340,15 +327,3 @@ export function computePubTypeTierBonus(classification, rerankConfig) {
 export function isExcludedClassification(classification) {
   return normalizeString(classification?.tier) === "excluded";
 }
-
-// Exposed for tests only
-export const __internals = {
-  buildAllowListLookup,
-  matchAllowList,
-  detectExcludedSubtype,
-  GUIDELINE_TITLE_PATTERNS,
-  SYSTEMATIC_REVIEW_TITLE_PATTERNS,
-  RCT_TITLE_PATTERNS,
-  CLINICAL_TRIAL_TITLE_PATTERNS,
-  toFiniteInt,
-};

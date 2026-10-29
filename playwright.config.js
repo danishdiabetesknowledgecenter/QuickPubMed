@@ -12,6 +12,16 @@ export default defineConfig({
     trace: "off",
     screenshot: "off",
   },
+  // Local runs keep using a server you already started. CI starts Vite itself.
+  ...(process.env.CI
+    ? {
+        webServer: {
+          command: "npm run dev -- --host 127.0.0.1 --port 5174 --strictPort",
+          url: e2eBase,
+          timeout: 120_000,
+        },
+      }
+    : {}),
   projects: [
     {
       name: "chromium",

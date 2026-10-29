@@ -17,66 +17,6 @@ muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @set_time_limit(60);
 
 /**
- * Detect local development host.
- *
- * @return bool
- */
-function muginIsLocalOpenAlexRequest(): bool
-{
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
-
-/**
- * Normalize PubMed IDs from OpenAlex values.
- *
- * @param mixed $value
- * @return string
- */
-function muginNormalizeOpenAlexPmid($value): string
-{
-    $raw = trim((string) $value);
-    if ($raw === '') {
-        return '';
-    }
-    if (preg_match('/(\d+)/', $raw, $matches)) {
-        return (string) $matches[1];
-    }
-    return '';
-}
-
-/**
- * Normalize DOI values from OpenAlex.
- *
- * @param mixed $value
- * @return string
- */
-function muginNormalizeOpenAlexDoi($value): string
-{
-    $doi = trim((string) $value);
-    if ($doi === '') {
-        return '';
-    }
-    $doi = preg_replace('~^https?://(dx\.)?doi\.org/~i', '', $doi);
-    $doi = preg_replace('~^doi:\s*~i', '', (string) $doi);
-    return trim((string) $doi);
-}
-
-/**
- * Reconstruct OpenAlex abstract text from an inverted index map.
- *
- * @param mixed $invertedIndex
- * @return string
- */
-function muginReconstructOpenAlexAbstract($invertedIndex): string
-{
-    return muginOpenAlexReconstructAbstract($invertedIndex);
-}
-
-/**
  * Normalize language values to OpenAlex filter codes.
  *
  * @param mixed $value
@@ -601,8 +541,8 @@ foreach ($results as $index => $work) {
         continue;
     }
     $ids = isset($work['ids']) && is_array($work['ids']) ? $work['ids'] : [];
-    $pmid = muginNormalizeOpenAlexPmid($work['pmid'] ?? ($ids['pmid'] ?? ''));
-    $doi = muginNormalizeOpenAlexDoi($work['doi'] ?? ($ids['doi'] ?? ''));
+    $pmid = muginNormalizeOpenAlexPmidValue($work['pmid'] ?? ($ids['pmid'] ?? ''));
+    $doi = muginNormalizeDoiValue($work['doi'] ?? ($ids['doi'] ?? ''));
     $openAlexId = trim((string) ($work['id'] ?? ''));
     $title = trim((string) ($work['display_name'] ?? $work['title'] ?? ''));
 
@@ -727,7 +667,7 @@ foreach ($results as $index => $work) {
         ?? ($primaryLocation['source']['host_organization_name'] ?? '')
     ));
     $languageCode = trim((string) ($work['language'] ?? ''));
-    $abstractText = muginReconstructOpenAlexAbstract($work['abstract_inverted_index'] ?? null);
+    $abstractText = muginOpenAlexReconstructAbstract($work['abstract_inverted_index'] ?? null);
     $abstractLength = $abstractText !== ''
         ? (function_exists('mb_strlen') ? mb_strlen($abstractText) : strlen($abstractText))
         : 0;

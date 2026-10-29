@@ -26,8 +26,8 @@ function getAllowedOrigin($origin) {
         $allowedPatterns = ALLOWED_DOMAINS;
     }
 
-    // First-party deployment hosts. Keep this narrow: these are the known
-    // VCD/Mugin Scholar frontend/backend domains that legitimately call each other.
+    // First-party hosts. Keep this in step with backend/api/.htaccess.
+    // localhost and 127.0.0.1 are not included here; list them in ALLOWED_DOMAINS.
     $allowedPatterns = array_merge($allowedPatterns, [
         'videncenterfordiabetes.dk',
         '*.videncenterfordiabetes.dk',
@@ -37,8 +37,12 @@ function getAllowedOrigin($origin) {
         '*.nempubmed.dk',
         'quickpubmed.dk',
         '*.quickpubmed.dk',
-        'localhost',
-        '127.0.0.1',
+        'mugin.dk',
+        '*.mugin.dk',
+        'mugin.ai',
+        '*.mugin.ai',
+        'muginscholar.dk',
+        '*.muginscholar.dk',
     ]);
 
     foreach (array_unique(array_filter($allowedPatterns, 'is_string')) as $pattern) {
@@ -300,21 +304,6 @@ function muginBuildLlmHttpHeaders(?string $domain = null): array
         $headers[] = 'OpenAI-Organization: ' . $orgId;
     }
     return $headers;
-}
-
-/**
- * Strip Requesty/OpenRouter-style provider prefixes for loose allowlist matching.
- */
-function muginStripLlmModelProviderPrefix(string $model): string
-{
-    $model = trim($model);
-    if ($model === '') {
-        return '';
-    }
-    if (preg_match('#^(openai-responses|openai|anthropic|google|amazon-bedrock|vertex)/(.+)$#i', $model, $m)) {
-        return trim((string) $m[2]);
-    }
-    return $model;
 }
 
 /**
@@ -1291,6 +1280,21 @@ function muginIsLocalBackendRequest(): bool
 }
 
 /**
+ * Local Vite-proxy gate. The fallback only tries localhost and 127.0.0.1, so ::1 does not count.
+ * LLM streaming uses muginIsLocalBackendRequest(), which also treats IPv6 loopback as local.
+ *
+ * @return bool
+ */
+function muginIsLocalDevProxyHost(): bool
+{
+    $requestHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+    return $requestHost !== '' && (
+        strpos($requestHost, 'localhost') !== false ||
+        strpos($requestHost, '127.0.0.1') !== false
+    );
+}
+
+/**
  * Single-use, in-memory (request-lifetime only) cache used to let a
  * muginHttpRequestMulti() prefetch of one or more sources' *first* HTTP call
  * transparently satisfy that same call when the normal sequential
@@ -1923,6 +1927,59 @@ function muginClientIpAddress(): string
 }
 
 /**
+ * Ceiling for first-party LLM proxy bodies. Widget summaries send the prompt
+ * plus selected abstracts and stay under this. Empty Origin is unchanged.
+ */
+function muginOpenAiProxyMaxBodyBytes(): int
+{
+    if (defined('MUGIN_OPENAI_PROXY_MAX_BODY_BYTES')) {
+        $configured = (int) MUGIN_OPENAI_PROXY_MAX_BODY_BYTES;
+        if ($configured > 0) {
+            return $configured;
+        }
+    }
+    return 32 * 1024 * 1024;
+}
+
+function muginRequestBodyExceedsLimit(int $contentLength, int $maxBytes): bool
+{
+    return $contentLength > $maxBytes;
+}
+
+/**
+ * Read php://input, stopping once the body is larger than $maxBytes.
+ * Bodies at or under the limit are returned whole, as file_get_contents did.
+ */
+function muginReadBoundedRequestBody(int $maxBytes): string
+{
+    $maxBytes = max(1, $maxBytes);
+    $contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
+    if (muginRequestBodyExceedsLimit($contentLength, $maxBytes)) {
+        http_response_code(413);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Request body too large'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $handle = fopen('php://input', 'rb');
+    if ($handle === false) {
+        return '';
+    }
+    $body = stream_get_contents($handle, $maxBytes + 1);
+    fclose($handle);
+    if (!is_string($body)) {
+        return '';
+    }
+    if (strlen($body) > $maxBytes) {
+        http_response_code(413);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Request body too large'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    return $body;
+}
+
+/**
  * @return array{limit: int, remaining: int|null, resetAt: string, resetInSeconds: int|null, status: int, isLimited: bool}
  */
 function muginConsumeIpRateLimit(string $routeClass, int $limitPerMinute): array
@@ -2005,6 +2062,7 @@ function muginEnforceFirstPartyIpRateLimit(string $routeClass): void
     $defaults = [
         'unifiedSearch' => 30,
         'openaiProxy' => 60,
+        'resourceCheck' => 60,
     ];
     $limits = $defaults;
     if (defined('MUGIN_FIRST_PARTY_IP_RATE_LIMITS') && is_array(MUGIN_FIRST_PARTY_IP_RATE_LIMITS)) {

@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Læs request body
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode(muginReadBoundedRequestBody(muginOpenAiProxyMaxBodyBytes()), true);
 
 if (!$input) {
     http_response_code(400);
@@ -130,15 +130,6 @@ set_time_limit(0);
 $domain = muginResolveDomain();
 $openAiApiUrl = muginGetOpenAIApiUrl($domain);
 $headers = muginBuildLlmHttpHeaders($domain);
-$isLocalRequest = static function(): bool {
-    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $host !== '' && (
-        strpos($host, 'localhost') !== false ||
-        strpos($host, '127.0.0.1') !== false ||
-        strpos($host, '[::1]') !== false ||
-        $host === '::1'
-    );
-};
 
 $sseBuffer = '';
 $hasStreamedText = false;
@@ -359,7 +350,7 @@ if (defined('CURLSSLOPT_NATIVE_CA')) {
     $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
 }
 
-if ($isLocalRequest()) {
+if (muginIsLocalBackendRequest()) {
     $curlOptions[CURLOPT_PROXY] = '';
 }
 

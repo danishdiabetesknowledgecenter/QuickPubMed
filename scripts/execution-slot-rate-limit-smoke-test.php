@@ -31,6 +31,20 @@ assertTrue(($first['hit'] ?? false) === true && (($first['value']['v'] ?? null) 
 muginPublicSearchWriteCacheValue($namespace, $cacheKey, ['v' => 2], 120);
 $second = muginPublicSearchReadCacheValue($namespace, $cacheKey);
 assertTrue(($second['hit'] ?? false) === true && (($second['value']['v'] ?? null) === 2), 'Cache overwrite replaces existing file (Windows-safe rename)');
+$jsonPath = muginPublicSearchBuildCacheFilePath($namespace, $cacheKey);
+$jsonRaw = (string) file_get_contents($jsonPath);
+assertTrue($jsonRaw !== '' && $jsonRaw[0] === '{', 'New cache files are JSON when the value round-trips');
+
+$legacyKey = 'audit-smoke-legacy-' . uniqid('', true);
+$legacyPath = muginPublicSearchBuildCacheFilePath($namespace, $legacyKey);
+$legacyPayload = serialize([
+    'expiresAt' => time() + 120,
+    'value' => ['v' => 7, 'label' => 'bevares'],
+]);
+assertTrue(file_put_contents($legacyPath, $legacyPayload) !== false, 'Legacy serialized cache file can be planted');
+$legacy = muginPublicSearchReadCacheValue($namespace, $legacyKey);
+assertTrue(($legacy['hit'] ?? false) === true && (($legacy['value']['v'] ?? null) === 7), 'Existing serialized cache files still hit');
+@unlink($legacyPath);
 
 // --- Execution slot happy path ---
 $slot = muginPublicSearchAcquireExecutionSlot(10);

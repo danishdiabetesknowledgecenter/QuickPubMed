@@ -57,7 +57,10 @@ function muginRequirePostMethod() {
 }
 
 function muginReadJsonInputOrFail() {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $raw = function_exists('muginReadBoundedRequestBody')
+        ? muginReadBoundedRequestBody(muginOpenAiProxyMaxBodyBytes())
+        : file_get_contents('php://input');
+    $input = json_decode($raw, true);
     if (!$input) {
         http_response_code(400);
         header('Content-Type: application/json');
@@ -114,6 +117,70 @@ function muginRequirePublicHttpsUrl($url, $fieldName) {
     return $value;
 }
 
+function muginIsPublicIpAddress(string $ip): bool
+{
+    return filter_var(
+        $ip,
+        FILTER_VALIDATE_IP,
+        FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+    ) !== false;
+}
+
+/**
+ * True only when every resolved address is public.
+ * An unresolved name is rejected.
+ */
+function muginHostResolvesToPublicAddresses(string $host): bool
+{
+    $host = strtolower(trim($host, "[] \t\n\r\0\x0B."));
+    if ($host === '') {
+        return false;
+    }
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        return muginIsPublicIpAddress($host);
+    }
+
+    $ips = [];
+    $ipv4 = @gethostbynamel($host);
+    if (is_array($ipv4)) {
+        foreach ($ipv4 as $ip) {
+            if (is_string($ip) && $ip !== '') {
+                $ips[] = $ip;
+            }
+        }
+    }
+    if (function_exists('dns_get_record')) {
+        $records = @dns_get_record($host, DNS_AAAA);
+        if (is_array($records)) {
+            foreach ($records as $record) {
+                if (is_array($record) && isset($record['ipv6']) && is_string($record['ipv6']) && $record['ipv6'] !== '') {
+                    $ips[] = $record['ipv6'];
+                }
+            }
+        }
+    }
+    if ($ips === []) {
+        return false;
+    }
+    foreach ($ips as $ip) {
+        if (!muginIsPublicIpAddress($ip)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function muginRequireResolvablePublicHost(string $url, string $fieldName): void
+{
+    $host = strtolower(trim((string) (parse_url($url, PHP_URL_HOST) ?? ''), '[]'));
+    if ($host === '' || !muginHostResolvesToPublicAddresses($host)) {
+        http_response_code(400);
+        header('Content-Type: application/json');
+        echo json_encode(['error' => $fieldName . ' must not point to a private address']);
+        exit;
+    }
+}
+
 function muginFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $sourceFieldName, $fetchLabel, &$cacheHit) {
     $cacheHit = false;
     $extractedText = muginReadTextFetchCache($cacheType, $sourceUrl);
@@ -121,16 +188,6 @@ function muginFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $so
         $cacheHit = true;
         return $extractedText;
     }
-
-    $isLocalRequest = static function(): bool {
-        $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-        return $host !== '' && (
-            strpos($host, 'localhost') !== false ||
-            strpos($host, '127.0.0.1') !== false ||
-            strpos($host, '[::1]') !== false ||
-            $host === '::1'
-        );
-    };
 
     $ch = curl_init($azureUrl);
     $curlOptions = [
@@ -146,7 +203,7 @@ function muginFetchExtractedTextFromAzure($cacheType, $sourceUrl, $azureUrl, $so
         $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
     }
 
-    if ($isLocalRequest()) {
+    if (muginIsLocalBackendRequest()) {
         $curlOptions[CURLOPT_PROXY] = '';
     }
 
@@ -280,15 +337,6 @@ function muginStreamOpenAiPlainText($openaiRequest) {
     $openAiApiUrl = muginGetOpenAIApiUrl($domain);
     $openaiRequest = muginNormalizeLlmRequestPayload(is_array($openaiRequest) ? $openaiRequest : []);
     $headers = muginBuildLlmHttpHeaders($domain);
-    $isLocalRequest = static function(): bool {
-        $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-        return $host !== '' && (
-            strpos($host, 'localhost') !== false ||
-            strpos($host, '127.0.0.1') !== false ||
-            strpos($host, '[::1]') !== false ||
-            $host === '::1'
-        );
-    };
 
     $sseBuffer = '';
     $hasStreamedText = false;
@@ -411,7 +459,7 @@ function muginStreamOpenAiPlainText($openaiRequest) {
         $curlOptions[CURLOPT_SSL_OPTIONS] = CURLSSLOPT_NATIVE_CA;
     }
 
-    if ($isLocalRequest()) {
+    if (muginIsLocalBackendRequest()) {
         $curlOptions[CURLOPT_PROXY] = '';
     }
 

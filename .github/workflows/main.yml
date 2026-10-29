@@ -40,6 +40,14 @@ jobs:
       - name: ✅ Offline smokes
         run: npm run test:offline
 
+      - name: 🎭 Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: 🎭 Search form browser test
+        run: npm run test:e2e
+        env:
+          MUGIN_E2E_BASE: http://127.0.0.1:5174
+
       - name: 🏗️ Build Project
         env:
           VITE_ABOUT_AI_URL: ${{ secrets.VITE_ABOUT_AI_URL }}
@@ -104,7 +112,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
           server-dir: ${{ env.DEPLOY_ROOT }}/
-          protocol: ftp  
+          protocol: ftps  
           exclude: |
              .git*
              node_modules
@@ -119,7 +127,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./backend/
           server-dir: ${{ env.DEPLOY_ROOT }}/backend/
-          protocol: ftp
+          protocol: ftps
           exclude: |
              config.php
              config/config.php
@@ -136,7 +144,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./public-api/
           server-dir: ${{ env.DEPLOY_ROOT }}/public-api/
-          protocol: ftp
+          protocol: ftps
           state-name: .ftp-deploy-sync-state-public-api.json
           exclude: |
              .git*
@@ -151,7 +159,7 @@ jobs:
           # Deploys whole entries tree, including entries/widgets/*.html
           local-dir: ./entries/
           server-dir: ${{ env.DEPLOY_ROOT }}/entries/
-          protocol: ftp
+          protocol: ftps
           exclude: |
              .git*
              *.map
@@ -165,7 +173,7 @@ jobs:
           # Scope deploy strictly to shared content only.
           local-dir: ./data/content/shared/
           server-dir: ${{ env.DEPLOY_ROOT }}/data/content/shared/
-          protocol: ftp
+          protocol: ftps
           state-name: .ftp-deploy-sync-state-data-shared.json
           dangerous-clean-slate: false
           exclude: |
@@ -181,7 +189,7 @@ jobs:
           # Scope deploy strictly to template content only.
           local-dir: ./data/content/template/
           server-dir: ${{ env.DEPLOY_ROOT }}/data/content/template/
-          protocol: ftp
+          protocol: ftps
           state-name: .ftp-deploy-sync-state-data-template.json
           dangerous-clean-slate: false
           exclude: |

@@ -14,19 +14,10 @@ require_once __DIR__ . '/NlmResponseCache.php';
 
 muginApplyNlmCorsHeaders('GET, OPTIONS', 'application/json');
 
-function muginIsLocalNlmSummaryRequest(): bool
-{
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
-
 function muginNlmSummaryLocalDevProxyRequest(array $params, int $timeout = 30): array
 {
     $hosts = ['localhost', '127.0.0.1'];
-    if (!muginIsLocalNlmSummaryRequest()) {
+    if (!muginIsLocalDevProxyHost()) {
         return [
             'ok' => false,
             'status' => 0,

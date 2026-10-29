@@ -23,6 +23,7 @@ muginRequirePostMethod();
 $input = muginReadJsonInputOrFail();
 
 $htmlUrl = muginRequirePublicHttpsUrl(muginRequireInputField($input, 'htmlurl'), 'htmlurl');
+muginRequireResolvablePublicHost($htmlUrl, 'htmlurl');
 $prompt = muginRequireInputField($input, 'prompt');
 
 // ============================================================

@@ -42,6 +42,10 @@ if (!is_array($input)) {
 }
 
 $url = muginRequirePublicHttpsUrl($input['url'] ?? '', 'url');
+muginRequireResolvablePublicHost($url, 'url');
+if (function_exists('muginEnforceFirstPartyIpRateLimit')) {
+    muginEnforceFirstPartyIpRateLimit('resourceCheck');
+}
 $forwardBody = json_encode(['url' => $url], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // Forward to Azure Function
@@ -62,7 +66,7 @@ $curlError = curl_error($ch);
 if ($curlError) {
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'Proxy error: ' . $curlError]);
+    echo json_encode(['error' => 'Proxy error']);
     exit;
 }
 

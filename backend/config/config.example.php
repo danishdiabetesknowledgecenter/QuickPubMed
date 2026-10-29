@@ -878,7 +878,11 @@ define('MUGIN_PUBLIC_API_GET_RATE_LIMIT', 15);
 define('MUGIN_FIRST_PARTY_IP_RATE_LIMITS', [
     'unifiedSearch' => 30,
     'openaiProxy' => 60,
+    'resourceCheck' => 60,
 ]);
+
+// Max JSON body for Summarize/Translate/Rerank proxies. 0 uses the 32 MiB default.
+define('MUGIN_OPENAI_PROXY_MAX_BODY_BYTES', 32 * 1024 * 1024);
 
 // Allowlisted model ids for first-party Summarize/Translate/Rerank proxies.
 // Unknown client-supplied models are mapped to a safe default (not rejected).
@@ -1094,6 +1098,12 @@ define('ALLOWED_DOMAINS', [
     'nempubmed.dk',
     '*.quickpubmed.dk',
     'quickpubmed.dk',
+    'mugin.dk',
+    '*.mugin.dk',
+    'mugin.ai',
+    '*.mugin.ai',
+    'muginscholar.dk',
+    '*.muginscholar.dk',
     '*.example.com',
     'example.com',
     'localhost',
@@ -1122,6 +1132,10 @@ define('EDITOR_USERS', [
 define('EDITOR_SESSION_TIMEOUT', 1800);
 // Set to true in production (HTTPS required for editor endpoints)
 define('EDITOR_REQUIRE_HTTPS', true);
+// Public proxy addresses allowed to set X-Forwarded-Proto. Loopback and
+// private connections are trusted without being listed.
+define('EDITOR_TRUSTED_PROXIES', [
+]);
 // Cookie SameSite policy for editor session: 'Lax', 'Strict', or 'None'
 // Use 'None' only when editor UI runs on a different origin than the API.
 define('EDITOR_COOKIE_SAMESITE', 'None');

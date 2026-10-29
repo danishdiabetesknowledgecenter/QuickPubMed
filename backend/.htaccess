@@ -9,14 +9,25 @@ RewriteEngine On
 # Also avoid short-circuiting OPTIONS here, because editor endpoints must
 # run PHP logic to validate origin and return the correct CORS headers.
 
-# Protect configuration and internal/runtime folders from direct access
+# Protect configuration and internal/runtime folders from direct access.
+# Require is the Apache 2.4 rule. The Order/Deny block remains for 2.2.
 <Files "config.php">
-    Order Allow,Deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
 </Files>
 <Files "config.example.php">
-    Order Allow,Deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
 </Files>
 RewriteRule ^config/ - [F,L]
 RewriteRule ^app/ - [F,L]

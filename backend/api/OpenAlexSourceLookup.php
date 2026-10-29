@@ -15,18 +15,9 @@ muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
 
-function muginIsLocalOpenAlexSourceLookupRequest(): bool
-{
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
-
 function muginOpenAlexSourceLocalDevProxyRequest(string $sourceId, string $apiKey = '', string $mailto = ''): array
 {
-    if (!muginIsLocalOpenAlexSourceLookupRequest()) {
+    if (!muginIsLocalDevProxyHost()) {
         return [
             'ok' => false,
             'status' => 0,

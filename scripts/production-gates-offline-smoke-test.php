@@ -5,6 +5,13 @@
  * Run: php scripts/production-gates-offline-smoke-test.php
  */
 
+if (!defined('ALLOWED_DOMAINS')) {
+    define('ALLOWED_DOMAINS', [
+        'localhost',
+        '127.0.0.1',
+    ]);
+}
+
 require_once __DIR__ . '/../backend/app/public-search-lib.php';
 
 $failures = 0;
@@ -118,7 +125,13 @@ assertTrue(
 $corsDenied = getAllowedOrigin('https://evil.example');
 assertTrue($corsDenied === null, 'Security: unknown Origin is not allowlisted');
 $corsLocal = getAllowedOrigin('http://127.0.0.1:5174');
-assertTrue($corsLocal === 'http://127.0.0.1:5174', 'Security: local first-party Origin is allowed');
+assertTrue($corsLocal === 'http://127.0.0.1:5174', 'Security: configured local Origin is allowed');
+$corsMugin = getAllowedOrigin('https://www.mugin.dk');
+assertTrue($corsMugin === 'https://www.mugin.dk', 'Security: mugin.dk matches the Apache first-party list');
+$corsMuginAi = getAllowedOrigin('https://mugin.ai');
+assertTrue($corsMuginAi === 'https://mugin.ai', 'Security: mugin.ai matches the Apache first-party list');
+$corsScholar = getAllowedOrigin('https://muginscholar.dk');
+assertTrue($corsScholar === 'https://muginscholar.dk', 'Security: muginscholar.dk matches the Apache first-party list');
 
 if ($failures > 0) {
     fwrite(STDERR, "\n{$failures} production-gate assertion(s) failed.\n");

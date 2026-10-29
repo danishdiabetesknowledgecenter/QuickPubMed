@@ -54,20 +54,6 @@ export function closeSearchFlowDebugConsoleGroup(opened) {
   }
 }
 
-export async function runWithSearchFlowDebugConsoleGroup(
-  enabled,
-  label,
-  task,
-  collapsed = true
-) {
-  const opened = openSearchFlowDebugConsoleGroup(enabled, label, collapsed);
-  try {
-    return await task();
-  } finally {
-    closeSearchFlowDebugConsoleGroup(opened);
-  }
-}
-
 export function getSearchFlowDebugPmid(record = {}) {
   const pmid = String(record?.pmid ?? record?.uid ?? "").trim();
   return /^[0-9]+$/.test(pmid) ? pmid : "";

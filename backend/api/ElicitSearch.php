@@ -10,24 +10,11 @@ if (!file_exists($configPath)) {
 }
 require_once $configPath;
 require_once __DIR__ . '/NlmApiHelpers.php';
+require_once dirname(__DIR__) . '/app/identifiers.php';
 
 muginApplyNlmCorsHeaders('GET, POST, OPTIONS', 'application/json');
 @ini_set('max_execution_time', '60');
 @set_time_limit(60);
-
-/**
- * Detect local development host.
- *
- * @return bool
- */
-function muginIsLocalElicitRequest(): bool
-{
-    $requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-    return $requestHost !== '' && (
-        strpos($requestHost, 'localhost') !== false ||
-        strpos($requestHost, '127.0.0.1') !== false
-    );
-}
 
 /**
  * HTTP request helper for Elicit that preserves response headers.
@@ -160,7 +147,7 @@ function muginElicitHttpRequest(string $url, array $options = []): array
 function muginElicitLocalDevProxyRequest(string $body, array $headers): array
 {
     $hosts = ['localhost', '127.0.0.1'];
-    if (!muginIsLocalElicitRequest()) {
+    if (!muginIsLocalDevProxyHost()) {
         return [
             'ok' => false,
             'status' => 0,
@@ -204,109 +191,6 @@ function muginElicitLocalDevProxyRequest(string $body, array $headers): array
 }
 
 /**
- * Convert raw response headers to a lower-cased map.
- *
- * @param array<int,string> $headers
- * @return array<string,string>
- */
-function muginElicitBuildHeaderMap(array $headers): array
-{
-    $headerMap = [];
-    foreach ($headers as $line) {
-        $separatorPos = strpos((string)$line, ':');
-        if ($separatorPos === false) {
-            continue;
-        }
-        $name = strtolower(trim(substr((string)$line, 0, $separatorPos)));
-        $value = trim(substr((string)$line, $separatorPos + 1));
-        if ($name === '') {
-            continue;
-        }
-        if (isset($headerMap[$name]) && $headerMap[$name] !== '' && $value === '') {
-            continue;
-        }
-        $headerMap[$name] = $value;
-    }
-    return $headerMap;
-}
-
-/**
- * Extract the first integer value from a response header.
- *
- * @param string $value
- * @return ?int
- */
-function muginElicitParseIntegerHeaderValue(string $value): ?int
-{
-    $normalizedValue = trim($value);
-    if ($normalizedValue === '') {
-        return null;
-    }
-
-    if (preg_match('/-?\d+/', $normalizedValue, $matches)) {
-        return (int)$matches[0];
-    }
-
-    return null;
-}
-
-/**
- * Parse Elicit reset header into ISO datetime and seconds remaining.
- *
- * @param string $resetValue
- * @param string $retryAfterValue
- * @return array{resetAt: string, resetInSeconds: ?int}
- */
-function muginElicitParseResetWindow(string $resetValue, string $retryAfterValue): array
-{
-    $nowTs = time();
-    $targetTs = 0;
-    $normalizedResetValue = trim($resetValue);
-    $normalizedRetryAfterValue = trim($retryAfterValue);
-
-    if ($normalizedResetValue !== '') {
-        $numericReset = muginElicitParseIntegerHeaderValue($normalizedResetValue);
-        if ($numericReset !== null) {
-            if ($numericReset > 1000000000000) {
-                $targetTs = (int)floor($numericReset / 1000);
-            } elseif ($numericReset > 1000000000) {
-                $targetTs = $numericReset;
-            } elseif ($numericReset > 0) {
-                $targetTs = $nowTs + $numericReset;
-            }
-        } else {
-            $parsedTs = strtotime($normalizedResetValue);
-            if ($parsedTs !== false) {
-                $targetTs = (int)$parsedTs;
-            }
-        }
-    }
-
-    if ($targetTs <= 0 && $normalizedRetryAfterValue !== '') {
-        if (preg_match('/^\d+$/', $normalizedRetryAfterValue)) {
-            $targetTs = $nowTs + (int)$normalizedRetryAfterValue;
-        } else {
-            $parsedTs = strtotime($normalizedRetryAfterValue);
-            if ($parsedTs !== false) {
-                $targetTs = (int)$parsedTs;
-            }
-        }
-    }
-
-    if ($targetTs <= 0) {
-        return [
-            'resetAt' => '',
-            'resetInSeconds' => null,
-        ];
-    }
-
-    return [
-        'resetAt' => gmdate('c', $targetTs),
-        'resetInSeconds' => max(0, $targetTs - $nowTs),
-    ];
-}
-
-/**
  * Extract Elicit rate limit metadata from response headers.
  *
  * @param array<int,string> $headers
@@ -315,20 +199,20 @@ function muginElicitParseResetWindow(string $resetValue, string $retryAfterValue
  */
 function muginElicitBuildRateLimitInfo(array $headers, int $status): array
 {
-    $headerMap = muginElicitBuildHeaderMap($headers);
-    $limit = muginElicitParseIntegerHeaderValue((string)($headerMap['x-ratelimit-limit'] ?? ''));
+    $headerMap = muginBuildResponseHeaderMap($headers);
+    $limit = muginParseIntegerHeaderValue((string)($headerMap['x-ratelimit-limit'] ?? ''));
     if ($limit !== null && $limit <= 0) {
         $limit = null;
     }
     $remaining = null;
-    $remainingValue = muginElicitParseIntegerHeaderValue((string)($headerMap['x-ratelimit-remaining'] ?? ''));
+    $remainingValue = muginParseIntegerHeaderValue((string)($headerMap['x-ratelimit-remaining'] ?? ''));
     if ($remainingValue !== null) {
         $remaining = max(0, $remainingValue);
     } elseif ($status === 429) {
         $remaining = 0;
     }
 
-    $resetWindow = muginElicitParseResetWindow(
+    $resetWindow = muginParseRateLimitResetWindow(
         (string)($headerMap['x-ratelimit-reset'] ?? ''),
         (string)($headerMap['retry-after'] ?? '')
     );
@@ -345,35 +229,6 @@ function muginElicitBuildRateLimitInfo(array $headers, int $status): array
         muginStoreSourceRateLimitSnapshot('elicit', $rateLimit);
     }
     return $rateLimit;
-}
-
-/**
- * Normalize PMIDs from Elicit values.
- *
- * @param mixed $value
- * @return string
- */
-function muginNormalizeElicitPmid($value): string
-{
-    $pmid = trim((string) $value);
-    return preg_match('/^[0-9]+$/', $pmid) ? $pmid : '';
-}
-
-/**
- * Normalize DOI values from Elicit.
- *
- * @param mixed $value
- * @return string
- */
-function muginNormalizeElicitDoi($value): string
-{
-    $doi = trim((string) $value);
-    if ($doi === '') {
-        return '';
-    }
-    $doi = preg_replace('~^https?://(dx\.)?doi\.org/~i', '', $doi);
-    $doi = preg_replace('~^doi:\s*~i', '', (string) $doi);
-    return trim((string) $doi);
 }
 
 /**
@@ -827,8 +682,8 @@ foreach ($papers as $index => $paper) {
     if (!is_array($paper)) {
         continue;
     }
-    $pmid = muginNormalizeElicitPmid($paper['pmid'] ?? '');
-    $doi = muginNormalizeElicitDoi($paper['doi'] ?? '');
+    $pmid = muginNormalizePmidValue($paper['pmid'] ?? '');
+    $doi = muginNormalizeDoiValue($paper['doi'] ?? '');
     if ($pmid === '' && $doi === '') {
         if ($debugSearchFlow) {
             $debugDroppedReasons['missing_pmid_and_doi'] = (int) ($debugDroppedReasons['missing_pmid_and_doi'] ?? 0) + 1;
