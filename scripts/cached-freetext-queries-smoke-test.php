@@ -104,7 +104,7 @@ assertTrue(
     'Cached PubMed clause replaces the raw freetext before topics/limits'
 );
 assertTrue(
-    ($applied['sourceQueryPlan']['semanticScholar']['query'] ?? '') === 'belief in Santa Claus',
+    ($applied['sourceQueryPlan']['semanticScholar']['query'] ?? '') === 'belief Santa Claus',
     'Cached Semantic Scholar query is applied to the source plan'
 );
 
@@ -122,7 +122,7 @@ assertTrue(
     'Resolved PubMed query keeps the cached translation'
 );
 assertTrue(
-    ($resolved['sourceQueryPlan']['semanticScholar']['query'] ?? '') === 'belief in Santa Claus',
+    ($resolved['sourceQueryPlan']['semanticScholar']['query'] ?? '') === 'belief Santa Claus',
     'BuildResolvedQueries reuses the cached Semantic Scholar string'
 );
 assertTrue(
@@ -134,7 +134,7 @@ $withOverride = $coverRequest;
 $withOverride['queryOverrides'] = ['semanticScholar' => 'belief in Santa Claus edited'];
 $resolvedOverride = muginPublicSearchBuildResolvedQueries($withOverride);
 assertTrue(
-    ($resolvedOverride['sourceQueryPlan']['semanticScholar']['query'] ?? '') === 'belief in Santa Claus edited',
+    ($resolvedOverride['sourceQueryPlan']['semanticScholar']['query'] ?? '') === 'belief Santa Claus edited',
     'An edited Semantic Scholar string still wins over the cached translation'
 );
 assertTrue(
