@@ -81,6 +81,23 @@ assertTrue(
     isset($ssSpec['options']['method']) && $ssSpec['options']['method'] === 'GET',
     'Semantic Scholar request spec uses GET'
 );
+$hyphenSpec = muginPublicSearchBuildSemanticScholarBatchRequestSpec(
+    'online versus in-person patient education',
+    $ssHeaders,
+    'JournalArticle',
+    '',
+    '',
+    0,
+    5
+);
+assertTrue(
+    str_contains($hyphenSpec['url'], 'in+person') && !str_contains($hyphenSpec['url'], 'in-person'),
+    'Semantic Scholar query replaces hyphenated terms with spaces'
+);
+assertTrue(
+    muginSanitizeSemanticScholarSearchQuery('COVID-19 and in-person care') === 'COVID 19 and in person care',
+    'Semantic Scholar query sanitizer splits hyphenated terms'
+);
 
 $oaSpec = muginPublicSearchBuildOpenAlexSourceRequestSpec('diabetes treatment', [], '', '');
 assertTrue(

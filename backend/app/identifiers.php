@@ -151,3 +151,22 @@ if (!function_exists('muginSplitSelectedIdentifiers')) {
         ];
     }
 }
+
+if (!function_exists('muginSanitizeSemanticScholarSearchQuery')) {
+    /**
+     * Semantic Scholar /paper/search returns no matches when the query contains
+     * a hyphenated term. Replace hyphens and dashes with spaces before sending.
+     *
+     * @param string $query
+     * @return string
+     */
+    function muginSanitizeSemanticScholarSearchQuery(string $query): string
+    {
+        $spaced = preg_replace('/[\x{002D}\x{2010}-\x{2014}\x{2212}]+/u', ' ', $query);
+        if (!is_string($spaced)) {
+            $spaced = str_replace('-', ' ', $query);
+        }
+        $collapsed = preg_replace('/\s+/u', ' ', $spaced);
+        return trim(is_string($collapsed) ? $collapsed : $spaced);
+    }
+}

@@ -256,7 +256,7 @@ function muginBuildSemanticScholarSearchQueryString(
 ): string
 {
     $queryString = http_build_query([
-        'query' => $query,
+        'query' => muginSanitizeSemanticScholarSearchQuery($query),
         'limit' => $limit,
         'offset' => $offset,
         'fields' => 'externalIds,title,abstract,venue,year,publicationTypes,publicationDate,citationCount,influentialCitationCount,isOpenAccess,s2FieldsOfStudy,tldr',
@@ -551,7 +551,7 @@ if (empty($params)) {
     }
 }
 
-$query = trim((string)($params['query'] ?? ''));
+$query = muginSanitizeSemanticScholarSearchQuery(trim((string)($params['query'] ?? '')));
 $debugSearchFlow = muginIsSearchFlowDebugRequest($params);
 $year = muginNormalizeSemanticScholarYearFilter($params['year'] ?? '');
 $publicationTypes = muginNormalizeSemanticScholarPublicationTypes(

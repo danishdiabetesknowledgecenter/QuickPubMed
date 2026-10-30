@@ -7396,7 +7396,7 @@ if (!function_exists('muginPublicSearchBuildSourceQueryPlan')) {
             }
             return $plainFallback;
         };
-        $semanticScholarQuery = $resolveSourceQuery('semanticScholar');
+        $semanticScholarQuery = muginSanitizeSemanticScholarSearchQuery($resolveSourceQuery('semanticScholar'));
         $openAlexQuery = $resolveSourceQuery('openAlex');
         $elicitBaseQuery = $resolveSourceQuery('elicit');
 
@@ -8342,7 +8342,9 @@ if (!function_exists('muginPublicSearchApplyCachedFreetextQueriesToDraft')) {
                 if (!isset($sourceQueryPlan[$sourceKey]) || !is_array($sourceQueryPlan[$sourceKey])) {
                     $sourceQueryPlan[$sourceKey] = ['query' => '', 'filters' => []];
                 }
-                $sourceQueryPlan[$sourceKey]['query'] = $cached[$sourceKey];
+                $sourceQueryPlan[$sourceKey]['query'] = $sourceKey === 'semanticScholar'
+                    ? muginSanitizeSemanticScholarSearchQuery((string) $cached[$sourceKey])
+                    : $cached[$sourceKey];
                 $applied = true;
             }
         }
@@ -8389,7 +8391,9 @@ if (!function_exists('muginPublicSearchApplyQueryOverrides')) {
             if (!isset($plan[$sourceKey]) || !is_array($plan[$sourceKey])) {
                 $plan[$sourceKey] = ['query' => '', 'filters' => []];
             }
-            $plan[$sourceKey]['query'] = $overrides[$sourceKey];
+            $plan[$sourceKey]['query'] = $sourceKey === 'semanticScholar'
+                ? muginSanitizeSemanticScholarSearchQuery((string) $overrides[$sourceKey])
+                : $overrides[$sourceKey];
             $applied[$sourceKey] = true;
         }
         $resolvedQueries['sourceQueryPlan'] = $plan;
@@ -9902,7 +9906,7 @@ if (!function_exists('muginPublicSearchBuildSemanticScholarBatchRequestSpec')) {
         int $limit
     ): array {
         $params = [
-            'query' => $normalizedQuery,
+            'query' => muginSanitizeSemanticScholarSearchQuery($normalizedQuery),
             'limit' => $limit,
             'offset' => $offset,
             // Aligned with backend/api/SemanticScholarSearch.php's fields list so the
