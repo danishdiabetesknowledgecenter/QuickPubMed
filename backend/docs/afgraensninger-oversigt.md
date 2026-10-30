@@ -181,7 +181,7 @@ Kaldes fra `backend/api/SemanticScholarSearch.php` (endpoint `/graph/v1/paper/se
 
 | API-parameter | Bruges til | Kildeværdi |
 |---|---|---|
-| `query` | Fritekst-query. Bindestreger og tankestreger erstattes med mellemrum, før kaldet sendes, fordi ord med bindestreg giver nul træf | Intent-oversat engelsk tekst |
+| `query` | Fritekst-query. Før kaldet beholdes højst seks indholdsord: tegnsætning og bindestreger bliver mellemrum, og funktionsord fjernes. En hel sætning og ord med bindestreg giver nul træf | Intent-oversat engelsk tekst |
 | `limit` | Sidesstørrelse (cap: 100) | `requestLimit` |
 | `offset` | Pagination | — |
 | `fields` | Kommaseparerede felter der hentes | Fast liste: `paperId, title, abstract, externalIds, authors, year, venue, publicationTypes, openAccessPdf, citationCount, influentialCitationCount, fieldsOfStudy, tldr` |

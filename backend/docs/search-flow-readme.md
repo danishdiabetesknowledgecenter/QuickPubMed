@@ -387,7 +387,7 @@ Vigtige karakteristika:
 
 - Semantic Scholar kan bruge strukturerede filtre for `publicationTypes`, `year` og `publicationDateOrYear`
 - retrieval er fri query-baseret
-- bindestreger og tankestreger i queryen erstattes med mellemrum, før kaldet sendes. Semantic Scholar giver ingen træf på ord med bindestreg, for eksempel `in-person` og `COVID-19`
+- queryen gøres til højst seks indholdsord, før kaldet sendes. Tegnsætning og bindestreger bliver mellemrum, og funktionsord fjernes. Semantic Scholar matcher alle ord mod titel og abstract, så en hel sætning ofte giver nul træf. Ord med bindestreg giver også nul træf, for eksempel `in-person` og `COVID-19`
 - Semantic Scholar bidrager primært med ranks, titel, abstract og identifikatorer
 
 Det er vigtigt, at vores interne model og Semantic Scholar API ikke er helt det samme:
