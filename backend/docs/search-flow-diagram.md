@@ -82,7 +82,7 @@ flowchart TD
   D --> E
 
   E --> SS["Semantic Scholar<br/>hvis valgt"]
-  E --> OA["OpenAlex<br/>hvis valgt<br/>semantisk med filtre<br/>keyword kun ved fejl eller 0"]
+  E --> OA["OpenAlex<br/>hvis valgt<br/>semantisk med lovlige filtre<br/>studiedesign og kildetype senere<br/>keyword kun ved fejl eller 0"]
   E --> EL["Elicit<br/>hvis valgt"]
 
   E --> PM{"PubMed valgt som kilde?"}

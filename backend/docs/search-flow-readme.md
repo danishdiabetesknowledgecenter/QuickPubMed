@@ -387,6 +387,7 @@ Vigtige karakteristika:
 
 - Semantic Scholar kan bruge strukturerede filtre for `publicationTypes`, `year` og `publicationDateOrYear`
 - retrieval er fri query-baseret
+- bindestreger og tankestreger i queryen erstattes med mellemrum, før kaldet sendes. Semantic Scholar giver ingen træf på ord med bindestreg, for eksempel `in-person` og `COVID-19`
 - Semantic Scholar bidrager primært med ranks, titel, abstract og identifikatorer
 
 Det er vigtigt, at vores interne model og Semantic Scholar API ikke er helt det samme:
@@ -406,19 +407,20 @@ OpenAlex bruges på flere niveauer:
 
 OpenAlex er især vigtig som filter-kompatibel metadata-rygrad for ikke-PMID-records, fordi den giver stabile kilde- og bibliografifelter, som kan bruges til post-validering.
 
-OpenAlex kan bruge disse filtre på både det semantiske kald og keyword-nødkaldet:
+På `search.semantic` sendes kun filtre, som OpenAlex accepterer sammen med semantisk søgning:
 
 - `language`
-- `workType` (`type`). Konferencepublikation sendes som `conference-paper` og `conference-abstract`, fordi `primary_location.source.type` afvises på `search.semantic`
+- `workType` (`type`). Konferencepublikation sendes som `conference-paper` og `conference-abstract`
 - `publicationYear` (`2020` eller `2020-2024`)
 - `isOa` (`open_access.is_oa:true`)
-- `studyDesigns` (`study_designs.id`), kun for randomiserede, kontrollerede forsøg og systematiske reviews inklusive metaanalyser. To valgte designs sendes som AND
+
+`study_designs.id` og `primary_location.source.type` sendes ikke på det semantiske kald. OpenAlex svarer HTTP 400, hvis de er med, og søgningen falder så tilbage til keyword. De to filtre sendes på keyword-nødkaldet. To valgte studiedesigns sendes som AND. Studiedesign dækker randomiserede, kontrollerede forsøg (`randomized-controlled-trial`) og systematiske reviews inklusive metaanalyser (`systematic-review`).
 
 `cited_by_count` og `country_code` sendes ikke som filtre. `rerank` sættes kun på keyword-kaldet. Rækkefølgen i svaret er rangen, og den sorteres ikke bagefter på `relevance_score`.
 
-Et fyldt loft på 50 og et valgt filter starter ikke keyword. Keyword kører højst én gang, med de samme filtre, når det semantiske kald fejler eller ikke giver kandidater med PubMed-id eller DOI.
+Et fyldt loft på 50 og et valgt filter starter ikke keyword. Keyword kører højst én gang, når det semantiske kald fejler eller ikke giver kandidater med PubMed-id eller DOI.
 
-På DOI-opslaget for artikler uden PubMed-id tjekkes sprog, åben adgang, kildeformat, review-type, studiedesign og vestlige lande på den hentede post. Konferencetype frasorteres, når brugeren har valgt videnskabelig artikel og ikke også konferencepublikation. Vestlige lande er Europa eller institution i USA, Canada, Australien eller New Zealand. En post uden institutionsland beholdes.
+På DOI-opslaget for artikler uden PubMed-id tjekkes sprog, åben adgang, kildeformat, review-type, studiedesign og vestlige lande på den hentede post. Studiedesign og konferencetype, som ikke kunne sendes med den semantiske søgning, anvendes her. Mangler feltet `study_designs` på posten, beholdes den. En tom liste betyder, at posten ikke har det krævede design og frasorteres. Konferencetype frasorteres, når brugeren har valgt videnskabelig artikel og ikke også konferencepublikation. Vestlige lande er Europa eller institution i USA, Canada, Australien eller New Zealand. En post uden institutionsland beholdes.
 
 I lokal udvikling kan frontend også prøve browser-proxy fallback ved backend-warning. Ved kendte upstream-fejl fra OpenAlex' semantiske embedding, fx at query ikke kan embeddes, springes browser-proxy fallback over, og flowet går i stedet videre til keyword fallback.
 
@@ -661,7 +663,7 @@ Brugeren gør følgende:
 2. Når brugeren klikker på søg, bygger `prepareSemanticSearchStateBeforeSearch()` normalt ét globalt semantic state for hele formularen, fordi AI og globalt intent-input er aktive. Tag-niveau-flowet bruges kun som fallback.
 3. Fordi AI og PubMed er aktive, dannes der en PubMed-søgestreng, som efter MeSH-validering kan ende med termer som `"Artificial Intelligence"[mh]`, `"Machine Learning"[mh]` og relevante fritekstsynonymer.
 4. Fordi AI og semantiske kilder også er aktive, dannes der en semantisk intention og en `semanticSourceQueryPlan`.
-5. OpenAlex kaldes semantisk med de valgte filtre. Keyword bruges kun, hvis det kald fejler eller ikke giver kandidater.
+5. OpenAlex kaldes semantisk med de filtre, som `search.semantic` accepterer. Studiedesign og kildetype anvendes bagefter på referencer uden PubMed-id. Keyword bruges kun, hvis det semantiske kald fejler eller ikke giver kandidater.
 6. Elicit kaldes med en naturlig sproglig forskningsforespørgsel og sine resolved filtre. Også her kan frontend prøve flere hintede retry-felter sekventielt og acceptere første svar uden warning eller error.
 7. Kandidater fra kilderne normaliseres og flettes ved PMID eller DOI.
 8. Kandidaterne genrangeres med vægtet RRF, PMID-bonus, overlap-bonus og eventuel tie-breaker-score.

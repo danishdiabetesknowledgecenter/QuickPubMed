@@ -10178,11 +10178,14 @@ if (!function_exists('muginPublicSearchBuildOpenAlexSourceRequestSpec')) {
         $studyDesigns = muginPublicSearchDedupeStrings(array_values(array_filter(
             array_map('muginPublicSearchNormalizeOpenAlexStudyDesignId', (array) ($filters['studyDesigns'] ?? []))
         )));
+        // search.semantic rejects study_designs.id and primary_location.source.type.
+        // Those filters stay on keyword search and are applied later to DOI-only works.
+        $semanticSearch = $searchMode !== 'keyword';
         $filterParts = [];
         if (!empty($languageFilters)) {
             $filterParts[] = 'language:' . implode('|', $languageFilters);
         }
-        if (!empty($sourceTypes)) {
+        if (!$semanticSearch && !empty($sourceTypes)) {
             $filterParts[] = 'primary_location.source.type:' . implode('|', $sourceTypes);
         }
         if (!empty($workTypes)) {
@@ -10194,8 +10197,10 @@ if (!function_exists('muginPublicSearchBuildOpenAlexSourceRequestSpec')) {
         if ($isOa === true) {
             $filterParts[] = 'open_access.is_oa:true';
         }
-        foreach ($studyDesigns as $studyDesign) {
-            $filterParts[] = 'study_designs.id:' . $studyDesign;
+        if (!$semanticSearch) {
+            foreach ($studyDesigns as $studyDesign) {
+                $filterParts[] = 'study_designs.id:' . $studyDesign;
+            }
         }
         if (!empty($filterParts)) {
             $requestParams['filter'] = implode(',', $filterParts);
@@ -10416,8 +10421,10 @@ if (!function_exists('muginPublicSearchFetchOpenAlexSourceResultSingle')) {
 
 if (!function_exists('muginPublicSearchFetchOpenAlexSourceResult')) {
     /**
-     * Semantic OpenAlex search with the selected legal filters. Keyword runs
-     * once, and only when semantic search fails or returns no PMID/DOI candidate.
+     * Semantic OpenAlex search with the filters that search.semantic accepts.
+     * study_designs.id and primary_location.source.type are applied later to
+     * DOI-only works. Keyword runs once, and only when semantic search fails
+     * or returns no PMID/DOI candidate.
      *
      * @param array<string,mixed> $filters
      * @return array<string,mixed>
@@ -11132,10 +11139,16 @@ if (!function_exists('muginPublicSearchCandidateMatchesOpenAlexDoiFilters')) {
             }
         }
 
-        $requiredDesigns = muginPublicSearchMapHardFiltersToOpenAlexStudyDesigns(
-            (array) ($hardFilters['publicationTypes'] ?? []),
-            (array) ($hardFilters['studyDesigns'] ?? [])
-        );
+        $requiredDesigns = muginPublicSearchDedupeStrings(array_merge(
+            muginPublicSearchMapHardFiltersToOpenAlexStudyDesigns(
+                (array) ($hardFilters['publicationTypes'] ?? []),
+                (array) ($hardFilters['studyDesigns'] ?? [])
+            ),
+            array_values(array_filter(array_map(
+                'muginPublicSearchNormalizeOpenAlexStudyDesignId',
+                (array) ($openAlexFilters['studyDesigns'] ?? [])
+            )))
+        ));
         if (!empty($requiredDesigns)) {
             $workDesigns = muginPublicSearchOpenAlexStudyDesignIds($work);
             if (is_array($workDesigns)) {

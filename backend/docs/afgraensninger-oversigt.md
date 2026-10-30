@@ -51,7 +51,7 @@ Kolonnerne:
 | ID | Kategori | PubMed `searchStrings.normal` | OpenAlex `filter=` | Semantic Scholar | Elicit | Post-validation / tier |
 |---|---|---|---|---|---|---|
 | **L010** | **Reviewtype** (gruppe) | | | | | |
-| L010010 | Systematiske reviews | `"Systematic Review"[pt] OR "Meta-Analysis"[pt]` | `type:review` og `study_designs.id:systematic-review` | `publicationTypes=Review,Meta-Analysis` | `typeTags=Systematic Review,Meta-Analysis` | `rule=systematicReview`, matcher `publicationType ⊇ {systematic review, meta-analysis}` |
+| L010010 | Systematiske reviews | `"Systematic Review"[pt] OR "Meta-Analysis"[pt]` | `type:review` på semantisk søgning. `study_designs.id:systematic-review` kun på keyword-nødkald og senere DOI-opslag | `publicationTypes=Review,Meta-Analysis` | `typeTags=Systematic Review,Meta-Analysis` | `rule=systematicReview`, matcher `publicationType ⊇ {systematic review, meta-analysis}` |
 | L010020 | Cochrane Reviews | `"Cochrane Database Syst Rev"[Journal]` | `primary_location.source.display_name` | `venue=Cochrane Database of Systematic Reviews` | `typeTags=Systematic Review, Review` | Post-val på `sourceTitle` |
 | L010030 | Health Evidence | PMID-liste `(...PMID...) NOT "Retracted Publication"[pt] AND y_10[Filter]` | — | — | — | Kun PubMed (statisk PMID-liste) |
 | **L010040** | **Guidelines** (M2-udvidet) | `"Guideline"[pt]` | — | — | — | `rule=guideline` matcher på `publicationType ⊇ {guideline, practice guideline}` **ELLER** `pubTypeTier ∈ {guideline_verified, guideline_candidate}` — NY |
@@ -61,7 +61,7 @@ Kolonnerne:
 | L020020 | Incidens- og prævalensstudier | `"Incidence"[mh] OR "Prevalence"[mh] OR prevalence[ti] OR incidence[ti]` | — | — | — | Kun `semanticConfig.sourceContext` (ingen hardFilters/postValidation) |
 | L020030 | Kohortestudier | `"Cohort Studies"[mh] OR cohort[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
 | L020040 | Kvalitative studier | `"Qualitative Research"[mh] OR qualitative[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
-| L020050 | Randomiserede, kontrollerede forsøg (RCT) | `"Randomized Controlled Trial"[pt] OR randomi*[ti]` | `study_designs.id:randomized-controlled-trial` | `publicationTypes=ClinicalTrial` | `typeTags=RCT` | `hardFilters.studyDesign=[randomized controlled trial]` |
+| L020050 | Randomiserede, kontrollerede forsøg (RCT) | `"Randomized Controlled Trial"[pt] OR randomi*[ti]` | `study_designs.id:randomized-controlled-trial` kun på keyword-nødkald og senere DOI-opslag | `publicationTypes=ClinicalTrial` | `typeTags=RCT` | `hardFilters.studyDesign=[randomized controlled trial]` |
 | L020060 | Økonomiske studier | `"Costs and Cost Analysis"[mh] OR cost*[ti] OR economic*[ti]` | — | — | — | Kun PubMed (ingen `semanticConfig`) |
 | **L025** | **Kildeformat** (gruppe) | | | | | |
 | L025010 | Videnskabelig artikel | — (findes ikke i PubMed, kun semantisk) | `workType=article` | `publicationTypes=JournalArticle` | — | `rule=source-format-journal`, `hardFilters.sourceFormat=[journal]`, matcher `candidateSourceType`/`openAlexSourceType=journal` |
@@ -156,17 +156,17 @@ Kaldes fra `backend/api/OpenAlexSearch.php` og `backend/api/OpenAlexWorkLookup.p
 
 | API-parameter | Bruges til | Kildeværdi |
 |---|---|---|
-| `search.title_abstract_keywords` | Keyword-nødkald, kun når semantisk søgning fejler eller giver 0 kandidater med PubMed-id eller DOI. Sammen med `rerank=true` og de samme filtre | Fritekst efter intent-oversættelse |
-| `search.semantic` | Semantic-query. Forespørgslen klippes til 2.000 tegn. Filtrene sendes med. `rerank` sendes ikke | Samme |
+| `search.title_abstract_keywords` | Keyword-nødkald, kun når semantisk søgning fejler eller giver 0 kandidater med PubMed-id eller DOI. Sammen med `rerank=true`. Her sendes også `study_designs.id` og `primary_location.source.type` | Fritekst efter intent-oversættelse |
+| `search.semantic` | Semantic-query. Forespørgslen klippes til 2.000 tegn. Kun filtre, som API'et accepterer på semantisk søgning, sendes med: sprog, `type`, `publication_year` og `open_access.is_oa`. `rerank`, `study_designs.id` og `primary_location.source.type` sendes ikke | Samme |
 | `per_page` | Sidesstørrelse (cap: 50) | `requestLimit` |
 | `page` | Offset | Pagination |
 | `select` | Kommaseparerede felter der hentes | Fast liste: `id, display_name, doi, ids, publication_year, publication_date, relevance_score, type, type_crossref, primary_location, fwci, cited_by_count, counts_by_year, is_retracted, open_access, primary_topic, authorships, abstract_inverted_index, language` |
 | `filter` | Sammensat filterstreng (AND mellem clauses) | Bygges ud fra `sourceFilters.openAlex.*`: |
 | &nbsp;&nbsp;&nbsp;`language:<iso>\|<iso>` | Sprogfilter | `sourceFilters.openAlex.language[]` |
-| &nbsp;&nbsp;&nbsp;`primary_location.source.type:<type>` | Kildetype (journal, repository, conference) | `sourceFilters.openAlex.sourceType[]` |
+| &nbsp;&nbsp;&nbsp;`primary_location.source.type:<type>` | Kildetype (journal, repository, conference). Kun keyword-nødkald. På semantisk søgning afvises filteret, og konferencetype tjekkes senere på DOI-opslaget | `sourceFilters.openAlex.sourceType[]` |
 | &nbsp;&nbsp;&nbsp;`type:<type>\|<type>` | Work-type (article, review, book, book-chapter, dataset, dissertation osv.) | `sourceFilters.openAlex.workType[]` |
 | &nbsp;&nbsp;&nbsp;`publication_year:>=<år>` | Recency | `sourceFilters.openAlex.publicationYear` |
-| &nbsp;&nbsp;&nbsp;`study_designs.id:<id>` | Studiedesign. Flere designs er AND | `randomized-controlled-trial` for RCT, `systematic-review` for systematiske reviews og metaanalyser |
+| &nbsp;&nbsp;&nbsp;`study_designs.id:<id>` | Studiedesign. Flere designs er AND. Kun keyword-nødkald. På semantisk søgning afvises filteret, og designet tjekkes senere på DOI-opslaget for referencer uden PubMed-id | `randomized-controlled-trial` for RCT, `systematic-review` for systematiske reviews og metaanalyser |
 | &nbsp;&nbsp;&nbsp;`open_access.is_oa:true` | Kun åben adgang | `sourceFilters.openAlex.isOa` |
 | &nbsp;&nbsp;&nbsp;`doi:<d1>\|<d2>\|...` (Work lookup) | Batch-hydration via DOI | `dois[]` i POST-body |
 | &nbsp;&nbsp;&nbsp;`openalex:<id>\|<id>\|...` (Work lookup) | Batch-hydration via OpenAlex ID (NY fra M2) | `openAlexIds[]` i POST-body |
@@ -181,7 +181,7 @@ Kaldes fra `backend/api/SemanticScholarSearch.php` (endpoint `/graph/v1/paper/se
 
 | API-parameter | Bruges til | Kildeværdi |
 |---|---|---|
-| `query` | Fritekst-query | Intent-oversat engelsk tekst |
+| `query` | Fritekst-query. Bindestreger og tankestreger erstattes med mellemrum, før kaldet sendes, fordi ord med bindestreg giver nul træf | Intent-oversat engelsk tekst |
 | `limit` | Sidesstørrelse (cap: 100) | `requestLimit` |
 | `offset` | Pagination | — |
 | `fields` | Kommaseparerede felter der hentes | Fast liste: `paperId, title, abstract, externalIds, authors, year, venue, publicationTypes, openAccessPdf, citationCount, influentialCitationCount, fieldsOfStudy, tldr` |

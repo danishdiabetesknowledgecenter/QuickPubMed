@@ -137,12 +137,21 @@ assertTrue($designs === ['systematic-review', 'randomized-controlled-trial'], 'O
 $andSpec = muginPublicSearchBuildOpenAlexSourceRequestSpec('diabetes', [
     'studyDesigns' => ['systematic-review', 'randomized-controlled-trial'],
     'language' => ['en'],
+    'sourceType' => ['journal'],
 ], 'template', '', 'semantic');
 $andUrl = (string) ($andSpec['url'] ?? '');
-assertTrue(strpos($andUrl, 'study_designs.id%3Asystematic-review') !== false || strpos($andUrl, 'study_designs.id:systematic-review') !== false, 'Systematic review design is sent');
-assertTrue(strpos($andUrl, 'study_designs.id%3Arandomized-controlled-trial') !== false || strpos($andUrl, 'study_designs.id:randomized-controlled-trial') !== false, 'RCT design is sent');
+assertTrue(strpos($andUrl, 'search.semantic') !== false, 'Study-design filters keep the request on semantic search');
+assertTrue(strpos($andUrl, 'study_designs.id') === false, 'Semantic search defers study designs');
+assertTrue(strpos($andUrl, 'primary_location.source.type') === false, 'Semantic search defers source type');
+assertTrue(strpos($andUrl, 'language') !== false, 'Semantic search still sends language');
 assertTrue(strpos($andUrl, 'rerank') === false, 'Semantic request does not send rerank');
-assertTrue(substr_count($andUrl, 'study_designs.id') === 2, 'Two study designs are separate AND clauses');
+$keywordSpec = muginPublicSearchBuildOpenAlexSourceRequestSpec('diabetes', [
+    'studyDesigns' => ['systematic-review', 'randomized-controlled-trial'],
+], 'template', '', 'keyword');
+$keywordUrl = (string) ($keywordSpec['url'] ?? '');
+assertTrue(strpos($keywordUrl, 'study_designs.id%3Asystematic-review') !== false || strpos($keywordUrl, 'study_designs.id:systematic-review') !== false, 'Keyword search sends systematic review');
+assertTrue(strpos($keywordUrl, 'study_designs.id%3Arandomized-controlled-trial') !== false || strpos($keywordUrl, 'study_designs.id:randomized-controlled-trial') !== false, 'Keyword search sends RCT');
+assertTrue(substr_count($keywordUrl, 'study_designs.id') === 2, 'Two study designs are separate AND clauses');
 
 $journalWork = [
     'language' => 'en',

@@ -44,6 +44,8 @@ Understoettede felter:
 - `workType`
 - `publicationYear`
 
+`language`, `workType` og `publicationYear` kan sendes med `search.semantic`. `sourceType` (`primary_location.source.type`) og studiedesign (`study_designs.id`) kan ikke. OpenAlex svarer HTTP 400, hvis de er med på semantisk søgning, og kaldet falder så tilbage til keyword. De to filtre sendes på keyword-nødkaldet og anvendes bagefter på referencer uden PubMed-id via DOI-opslaget.
+
 Eksempel:
 
 ```json

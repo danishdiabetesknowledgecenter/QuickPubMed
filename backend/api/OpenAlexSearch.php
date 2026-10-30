@@ -404,10 +404,11 @@ $requestParams = [
 ];
 if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $publicationYearFilter !== '' || $isOaFilter === true || !empty($studyDesigns)) {
     $filterParts = [];
+    $semanticSearch = $searchMode !== 'keyword';
     if (!empty($languageFilters)) {
         $filterParts[] = 'language:' . implode('|', $languageFilters);
     }
-    if (!empty($sourceTypes)) {
+    if (!$semanticSearch && !empty($sourceTypes)) {
         $filterParts[] = 'primary_location.source.type:' . implode('|', $sourceTypes);
     }
     if (!empty($workTypes)) {
@@ -419,10 +420,14 @@ if (!empty($languageFilters) || !empty($sourceTypes) || !empty($workTypes) || $p
     if ($isOaFilter === true) {
         $filterParts[] = 'open_access.is_oa:true';
     }
-    foreach ($studyDesigns as $studyDesign) {
-        $filterParts[] = 'study_designs.id:' . $studyDesign;
+    if (!$semanticSearch) {
+        foreach ($studyDesigns as $studyDesign) {
+            $filterParts[] = 'study_designs.id:' . $studyDesign;
+        }
     }
-    $requestParams['filter'] = implode(',', $filterParts);
+    if ($filterParts !== []) {
+        $requestParams['filter'] = implode(',', $filterParts);
+    }
 }
 if ($searchMode === 'keyword') {
     $requestParams['rerank'] = 'true';

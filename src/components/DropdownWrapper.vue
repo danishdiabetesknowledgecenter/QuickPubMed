@@ -8109,7 +8109,7 @@
         if (languageFilters.length) {
           filterParts.push(`language:${languageFilters.join("|")}`);
         }
-        if (sourceTypes.length) {
+        if (searchMode !== "semantic" && sourceTypes.length) {
           filterParts.push(`primary_location.source.type:${sourceTypes.join("|")}`);
         }
         if (workTypes.length) {
@@ -8121,11 +8121,13 @@
         if (isOaFilter) {
           filterParts.push("open_access.is_oa:true");
         }
-        const studyDesigns = Array.isArray(options?.studyDesigns) ? options.studyDesigns : [];
-        studyDesigns.forEach((studyDesign) => {
-          const normalized = this.normalizeOpenAlexStudyDesignId(studyDesign);
-          if (normalized) filterParts.push(`study_designs.id:${normalized}`);
-        });
+        if (searchMode !== "semantic") {
+          const studyDesigns = Array.isArray(options?.studyDesigns) ? options.studyDesigns : [];
+          studyDesigns.forEach((studyDesign) => {
+            const normalized = this.normalizeOpenAlexStudyDesignId(studyDesign);
+            if (normalized) filterParts.push(`study_designs.id:${normalized}`);
+          });
+        }
         if (filterParts.length) {
           params.set("filter", filterParts.join(","));
         }
