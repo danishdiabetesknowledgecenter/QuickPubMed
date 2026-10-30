@@ -91,20 +91,20 @@ $hyphenSpec = muginPublicSearchBuildSemanticScholarBatchRequestSpec(
     5
 );
 assertTrue(
-    str_contains($hyphenSpec['url'], 'online+person+patient+education') && !str_contains($hyphenSpec['url'], 'in-person'),
-    'Semantic Scholar query keeps content words and drops hyphens'
+    str_contains($hyphenSpec['url'], 'online+versus+person+patient+education') && !str_contains($hyphenSpec['url'], 'in-person'),
+    'Semantic Scholar query keeps content words and replaces hyphens with spaces'
 );
 assertTrue(
     muginSanitizeSemanticScholarSearchQuery('COVID-19 and in-person care') === 'COVID 19 person care',
-    'Semantic Scholar query sanitizer splits hyphenated terms and drops function words'
-);
-assertTrue(
-    muginSanitizeSemanticScholarSearchQuery('Dual leadership versus traditional single leader management: effects on decision making quality and quality of leadership work') === 'Dual leadership traditional single leader management',
-    'Semantic Scholar query keeps the first six content words of a sentence'
+    'Semantic Scholar query drops function words and splits hyphenated terms'
 );
 assertTrue(
     muginSanitizeSemanticScholarSearchQuery('type 2 diabetes treatment') === 'type 2 diabetes treatment',
-    'Semantic Scholar query leaves a short keyword query unchanged'
+    'Semantic Scholar query leaves a short query unchanged'
+);
+assertTrue(
+    muginSanitizeSemanticScholarSearchQuery('Dual leadership versus traditional single leader management: effects on decision making quality and quality of leadership work') === 'Dual leadership versus traditional single leader management effects decision making quality work',
+    'Semantic Scholar query keeps content words in order and drops function words'
 );
 
 $oaSpec = muginPublicSearchBuildOpenAlexSourceRequestSpec('diabetes treatment', [], '', '');

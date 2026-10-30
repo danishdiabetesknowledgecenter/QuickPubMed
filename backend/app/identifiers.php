@@ -154,13 +154,16 @@ if (!function_exists('muginSplitSelectedIdentifiers')) {
 
 if (!function_exists('muginSanitizeSemanticScholarSearchQuery')) {
     /**
-     * /paper/search matches every term against the title and abstract and
-     * returns nothing for a hyphenated term. A full sentence therefore often
-     * matches nothing. Keep at most six content words, with punctuation and
-     * function words removed.
+     * Semantic Scholar retrieves candidates in Elasticsearch and then ranks
+     * them. Stopwords in a natural-language query hurt that first step, and
+     * the ranker scores how much of the query appears in the title, including
+     * phrases of up to seven words. Hyphenated terms return no matches.
+     * Drop function words, turn hyphens into spaces, and keep every content
+     * word in order.
      *
      * @param string $query
      * @return string
+     * @see https://medium.com/ai2-blog/building-a-better-search-engine-for-semantic-scholar-ea23a0b661e7
      */
     function muginSanitizeSemanticScholarSearchQuery(string $query): string
     {
@@ -174,7 +177,8 @@ if (!function_exists('muginSanitizeSemanticScholarSearchQuery')) {
         }
         $parts = preg_split('/\s+/u', trim($worded), -1, PREG_SPLIT_NO_EMPTY);
         if (!is_array($parts) || $parts === []) {
-            return trim($worded);
+            $collapsed = preg_replace('/\s+/u', ' ', $spaced);
+            return trim(is_string($collapsed) ? $collapsed : $spaced);
         }
         $stopwords = array_flip([
             'a', 'an', 'the', 'of', 'on', 'and', 'or', 'in', 'to', 'for', 'with', 'by', 'from', 'as', 'at',
@@ -182,10 +186,9 @@ if (!function_exists('muginSanitizeSemanticScholarSearchQuery')) {
             'being', 'it', 'its', 'their', 'they', 'them', 'how', 'what', 'which', 'who', 'whom', 'whose',
             'why', 'when', 'where', 'does', 'do', 'did', 'can', 'could', 'should', 'would', 'may', 'might',
             'will', 'about', 'between', 'among', 'across', 'through', 'during', 'without', 'within', 'upon',
-            'per', 'via', 'versus', 'vs', 'not', 'no', 'nor', 'but', 'if', 'then', 'so', 'such', 'also',
+            'per', 'via', 'not', 'no', 'nor', 'but', 'if', 'then', 'so', 'such', 'also',
             'both', 'each', 'other', 'another', 'more', 'most', 'very', 'just', 'only', 'same', 'after',
             'before', 'above', 'below', 'under', 'out', 'up', 'down', 'off', 'all', 'any', 'some', 'own',
-            'effect', 'effects', 'impact', 'impacts',
             'og', 'på', 'paa', 'af', 'til', 'med', 'en', 'et', 'den', 'det', 'der', 'som', 'at', 'er', 'end',
             'om', 'eller', 'fra', 'ved', 'ikke', 'samt', 'mellem', 'mod',
         ]);
@@ -202,9 +205,6 @@ if (!function_exists('muginSanitizeSemanticScholarSearchQuery')) {
             }
             $seen[$key] = true;
             $kept[] = $part;
-            if (count($kept) >= 6) {
-                break;
-            }
         }
         if ($kept === []) {
             $collapsed = preg_replace('/\s+/u', ' ', $worded);

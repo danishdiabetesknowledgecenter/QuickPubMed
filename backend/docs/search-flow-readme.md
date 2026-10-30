@@ -387,7 +387,7 @@ Vigtige karakteristika:
 
 - Semantic Scholar kan bruge strukturerede filtre for `publicationTypes`, `year` og `publicationDateOrYear`
 - retrieval er fri query-baseret
-- queryen gøres til højst seks indholdsord, før kaldet sendes. Tegnsætning og bindestreger bliver mellemrum, og funktionsord fjernes. Semantic Scholar matcher alle ord mod titel og abstract, så en hel sætning ofte giver nul træf. Ord med bindestreg giver også nul træf, for eksempel `in-person` og `COVID-19`
+- queryen starter som den samme konceptuelle sætning som OpenAlex. Forkortelser skrives ud som fulde engelske fagord, fordi Semantic Scholar ikke udvider akronymer. Før kaldet fjernes funktionsord, og bindestreger bliver til mellemrum. Indholdsordene beholdes i samme rækkefølge, uden loft på antallet. Semantic Scholar finder først kandidater i Elasticsearch og rangerer dem bagefter. Stopord i en almindelig sætning skader kandidatvalget, og det stærkeste rangeringssignal er, hvor stor en del af søgeteksten der står i titlen. Fraser matches op til 7 ord. Et ord med bindestreg giver nul træf i API'et. Se [Building a Better Search Engine for Semantic Scholar](https://medium.com/ai2-blog/building-a-better-search-engine-for-semantic-scholar-ea23a0b661e7) og [Semantic Scholars FAQ om forkortelser](https://www.semanticscholar.org/faq).
 - Semantic Scholar bidrager primært med ranks, titel, abstract og identifikatorer
 
 Det er vigtigt, at vores interne model og Semantic Scholar API ikke er helt det samme:

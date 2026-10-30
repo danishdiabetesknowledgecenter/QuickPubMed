@@ -181,7 +181,7 @@ Kaldes fra `backend/api/SemanticScholarSearch.php` (endpoint `/graph/v1/paper/se
 
 | API-parameter | Bruges til | Kildeværdi |
 |---|---|---|
-| `query` | Fritekst-query. Før kaldet beholdes højst seks indholdsord: tegnsætning og bindestreger bliver mellemrum, og funktionsord fjernes. En hel sætning og ord med bindestreg giver nul træf | Intent-oversat engelsk tekst |
+| `query` | Fritekst-query. Starter som OpenAlex-sætningen. Funktionsord fjernes, og bindestreger bliver til mellemrum. Indholdsordene beholdes i samme rækkefølge. Begrundelsen står i [Building a Better Search Engine for Semantic Scholar](https://medium.com/ai2-blog/building-a-better-search-engine-for-semantic-scholar-ea23a0b661e7) | Intent-oversat engelsk tekst |
 | `limit` | Sidesstørrelse (cap: 100) | `requestLimit` |
 | `offset` | Pagination | — |
 | `fields` | Kommaseparerede felter der hentes | Fast liste: `paperId, title, abstract, externalIds, authors, year, venue, publicationTypes, openAccessPdf, citationCount, influentialCitationCount, fieldsOfStudy, tldr` |
